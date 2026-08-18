@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TruckPulse — Vehicle Simulation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+
+  <!-- Leaflet.js — FREE OpenStreetMap -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <link rel="stylesheet" href="css/styles.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚛</text></svg>" />
+</head>
+<body>
+  <!-- Ambient orbs -->
+  <div class="bg-orb o1"></div>
+  <div class="bg-orb o2"></div>
+  <div class="bg-orb o3"></div>
+
+  <!-- Auth gate overlay -->
+  <div id="auth-gate" class="auth-gate hidden">
+    <div class="auth-gate-card">
+      <div class="auth-gate-icon">🔒</div>
+      <div class="auth-gate-title">Access Restricted</div>
+      <div class="auth-gate-msg">Please log in as an admin to access the dashboard.</div>
+      <a href="login.html" class="auth-gate-btn">Go to Login</a>
+      <a href="home.html" style="display:block;margin-top:12px;font-size:11px;color:var(--faint);text-decoration:none;letter-spacing:0.5px;">← Back to Home</a>
+    </div>
+  </div>
+
+  <div id="app">
+    <!-- ============ HEADER ============ -->
+    <header class="app-header">
+      <div class="brand">
+        <a href="home.html" style="text-decoration:none;display:flex;align-items:center;gap:12px;">
+          <div class="brand-logo">🚛</div>
+          <div class="brand-text">
+            <span class="brand-name">TRUCKPULSE</span>
+            <span class="brand-sub">AI VEHICLE TELEMETRY</span>
+          </div>
+        </a>
+      </div>
+
+      <div class="header-center" id="vehicle-status-chip"></div>
+
+      <div class="header-right">
+        <div class="user-info" id="user-info">
+          <span class="user-avatar">👤</span>
+          <span class="user-name" id="user-name">Admin</span>
+          <span class="user-role" id="user-role">admin</span>
+        </div>
+        <button class="icon-btn" id="sound-toggle" title="Toggle alert sound">
+          <span class="icon-sound-off">🔇</span>
+          <span class="sound-label">SOUND</span>
+        </button>
+        <button class="icon-btn" id="logout-btn" title="Logout" style="color:var(--bad);border-color:rgba(248,113,113,0.3);">
+          <span>🚪</span>
+          <span class="sound-label">LOGOUT</span>
+        </button>
+        <div class="clock" id="clock">--:--:--</div>
+      </div>
+    </header>
+
+    <!-- ============ DASHBOARD ALERT BANNER ============ -->
+    <div id="alert-banner" class="alert-banner hidden"></div>
+
+    <!-- ============ MAP (FULL WIDTH) ============ -->
+    <div id="fleet-map-section" style="margin-bottom: 14px;"></div>
+
+    <!-- ============ MAIN GRID ============ -->
+    <main class="main-grid">
+
+      <!-- LEFT COLUMN -->
+      <section class="col col-left">
+        <div id="fleet-panel"></div>
+        <div id="sim-controls"></div>
+        <div id="alert-center"></div>
+      </section>
+
+      <!-- CENTER COLUMN -->
+      <section class="col col-center">
+        <div class="status-row">
+          <div id="health-score"></div>
+          <div id="vehicle-visual"></div>
+        </div>
+        <div id="telemetry"></div>
+        <div id="charts"></div>
+      </section>
+
+      <!-- RIGHT COLUMN -->
+      <section class="col col-right">
+        <div id="ai-analysis"></div>
+        <div id="analysis-dashboard"></div>
+        <div id="event-timeline"></div>
+        <div id="whatsapp-preview"></div>
+      </section>
+    </main>
+
+    <footer class="app-footer">
+      <span>TruckPulse · Simulated OBD-II pipeline — Vehicle → Data → AI Health → Risk → Alert → Action</span>
+      <span id="footer-clock" class="mono"></span>
+    </footer>
+  </div>
+
+  <!-- Toast stack -->
+  <div id="toast-stack" class="toast-stack" aria-live="polite"></div>
+
+  <!-- Transition overlay -->
+  <div id="transition-toast" class="transition-toast hidden"></div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

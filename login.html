@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TruckPulse — Admin Login</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚛</text></svg>" />
+  <style>
+    :root {
+      --bg-0: #030810;
+      --bg-1: #060d1c;
+      --bg-2: #0a1428;
+      --glass-bg: rgba(12, 20, 42, 0.55);
+      --glass-border: rgba(80, 140, 220, 0.12);
+      --glass-border-hover: rgba(80, 160, 240, 0.25);
+      --glass-blur: 20px;
+      --text: #e4edff;
+      --muted: #7e9cc4;
+      --faint: #4a6890;
+      --ok: #34d399;
+      --warn: #fbbf24;
+      --bad: #f87171;
+      --cyan: #22d3ee;
+      --purple: #a78bfa;
+      --pink: #f472b6;
+      --radius: 16px;
+      --font: 'Space Grotesk', 'Segoe UI', system-ui, sans-serif;
+      --mono: 'JetBrains Mono', 'Cascadia Code', Consolas, monospace;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg-0);
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Cyber grid */
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background:
+        radial-gradient(1200px 600px at 15% -10%, rgba(34, 211, 238, 0.06), transparent 55%),
+        radial-gradient(900px 700px at 100% 0%, rgba(167, 139, 250, 0.04), transparent 50%),
+        linear-gradient(180deg, var(--bg-1), var(--bg-0) 60%);
+    }
+    body::after {
+      content: '';
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      opacity: 0.035;
+      background-image:
+        linear-gradient(rgba(34, 211, 238, 0.5) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(34, 211, 238, 0.5) 1px, transparent 1px);
+      background-size: 60px 60px;
+      mask-image: radial-gradient(ellipse at center, rgba(0,0,0,0.5) 0%, transparent 70%);
+      -webkit-mask-image: radial-gradient(ellipse at center, rgba(0,0,0,0.5) 0%, transparent 70%);
+    }
+
+    /* Ambient orbs */
+    .bg-orb {
+      position: fixed; border-radius: 50%; filter: blur(100px); opacity: 0.2;
+      pointer-events: none; z-index: 0;
+      animation: orbFloat 16s ease-in-out infinite alternate;
+    }
+    .bg-orb.o1 { width: 500px; height: 500px; top: -15%; left: -8%; background: rgba(34,211,238,0.12); }
+    .bg-orb.o2 { width: 400px; height: 400px; top: 40%; right: -10%; background: rgba(167,139,250,0.1); animation-delay: 4s; }
+    .bg-orb.o3 { width: 350px; height: 350px; bottom: 0%; left: 25%; background: rgba(244,114,182,0.07); animation-delay: 8s; }
+    @keyframes orbFloat {
+      0% { transform: translate(0, 0) scale(1); }
+      100% { transform: translate(40px, -50px) scale(1.15); }
+    }
+
+    /* Background particles */
+    .bg-particles {
+      position: fixed; inset: 0; pointer-events: none; z-index: 0;
+      overflow: hidden;
+    }
+    .bg-particles .particle {
+      position: absolute;
+      width: 3px; height: 3px;
+      background: var(--cyan);
+      border-radius: 50%;
+      opacity: 0;
+      animation: particleFloat linear infinite;
+      box-shadow: 0 0 6px var(--cyan);
+    }
+    @keyframes particleFloat {
+      0% { opacity: 0; transform: translateY(100vh) scale(0); }
+      10% { opacity: 0.5; }
+      90% { opacity: 0.2; }
+      100% { opacity: 0; transform: translateY(-10vh) scale(1); }
+    }
+
+    .login-container {
+      position: relative; z-index: 1;
+      width: 100%; max-width: 440px; padding: 20px;
+    }
+
+    /* ===== LIQUID GLASS CARD ===== */
+    .login-card {
+      background: rgba(12, 20, 42, 0.55);
+      border: 1px solid rgba(80, 140, 220, 0.12);
+      border-radius: 22px;
+      box-shadow:
+        0 24px 64px rgba(0, 0, 0, 0.55),
+        0 0 40px rgba(34, 211, 238, 0.05),
+        inset 0 1px 0 rgba(255,255,255,0.04);
+      padding: 40px 36px 36px;
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      animation: cardIn 0.6s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    /* Holographic shine */
+    .login-card::before {
+      content: '';
+      position: absolute; inset: 0; border-radius: inherit;
+      background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, transparent 50%, rgba(255,255,255,0.02) 100%);
+      pointer-events: none; z-index: 0;
+    }
+    /* Animated border */
+    .login-card::after {
+      content: '';
+      position: absolute; inset: -1px; border-radius: inherit; padding: 1px;
+      background: conic-gradient(from var(--border-angle, 0deg), rgba(34,211,238,0.3), rgba(167,139,250,0.2), rgba(244,114,182,0.15), rgba(34,211,238,0.3));
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor; mask-composite: exclude;
+      opacity: 0.5;
+      pointer-events: none; z-index: 0;
+      animation: borderRotate 4s linear infinite;
+    }
+    @property --border-angle {
+      syntax: '<angle>';
+      initial-value: 0deg;
+      inherits: false;
+    }
+    @keyframes borderRotate { to { --border-angle: 360deg; } }
+
+    @keyframes cardIn {
+      from { opacity: 0; transform: translateY(30px) scale(0.97); }
+      to { opacity: 1; transform: none; }
+    }
+
+    .login-brand {
+      text-align: center; margin-bottom: 32px; position: relative; z-index: 1;
+    }
+    .login-logo {
+      font-size: 52px; margin-bottom: 12px;
+      filter: drop-shadow(0 0 16px rgba(34, 211, 238, 0.6));
+      animation: floaty 4s ease-in-out infinite;
+    }
+    @keyframes floaty { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+
+    .login-title {
+      font-weight: 700; font-size: 26px; letter-spacing: 4px;
+      background: linear-gradient(90deg, #7dd3fc, #22d3ee 30%, #a78bfa 60%, #f472b6 90%);
+      background-size: 200% 100%;
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+      animation: gradientShift 6s ease-in-out infinite;
+    }
+    @keyframes gradientShift {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+    .login-subtitle {
+      font-size: 11px; letter-spacing: 2.8px; color: var(--faint);
+      margin-top: 4px; text-transform: uppercase; font-weight: 500;
+    }
+
+    /* ===== FORM ===== */
+    .form-group { margin-bottom: 18px; position: relative; z-index: 1; }
+    .form-label {
+      display: block; font-size: 10px; letter-spacing: 2px; color: var(--faint);
+      font-weight: 600; margin-bottom: 7px; text-transform: uppercase;
+    }
+    .form-input-wrap { position: relative; }
+    .form-input-icon {
+      position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+      font-size: 16px; color: var(--faint); pointer-events: none;
+      transition: color 0.25s, filter 0.25s;
+    }
+    .form-input {
+      width: 100%; padding: 13px 14px 13px 44px;
+      background: rgba(8, 14, 30, 0.7);
+      border: 1px solid rgba(80, 140, 220, 0.12);
+      border-radius: var(--radius);
+      color: var(--text); font-family: var(--mono); font-size: 14px;
+      outline: none; transition: all 0.3s;
+      backdrop-filter: blur(10px);
+    }
+    .form-input::placeholder { color: var(--faint); }
+    .form-input:focus {
+      border-color: rgba(34, 211, 238, 0.5);
+      box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.1), 0 0 20px rgba(34,211,238,0.08);
+    }
+    .form-input:focus ~ .form-input-icon { color: var(--cyan); filter: drop-shadow(0 0 6px rgba(34,211,238,0.5)); }
+
+    .form-checkbox {
+      display: flex; align-items: center; gap: 10px; cursor: pointer;
+    }
+    .form-checkbox input { display: none; }
+    .check-box {
+      width: 18px; height: 18px; border-radius: 5px;
+      border: 1px solid rgba(80, 140, 220, 0.2);
+      background: rgba(8, 14, 30, 0.7);
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.25s; flex: none;
+    }
+    .check-box svg { opacity: 0; transition: opacity 0.25s; }
+    .form-checkbox input:checked ~ .check-box {
+      background: linear-gradient(135deg, rgba(34, 211, 238, 0.25), rgba(34, 211, 238, 0.08));
+      border-color: rgba(34, 211, 238, 0.5);
+      box-shadow: 0 0 8px rgba(34,211,238,0.2);
+    }
+    .form-checkbox input:checked ~ .check-box svg { opacity: 1; }
+    .check-label { font-size: 12px; color: var(--muted); }
+
+    /* ===== BUTTON ===== */
+    .login-btn {
+      width: 100%; padding: 14px;
+      background: linear-gradient(135deg, rgba(34, 211, 238, 0.22), rgba(34, 211, 238, 0.06));
+      border: 1px solid rgba(34, 211, 238, 0.45);
+      border-radius: var(--radius); color: #bdf2ff;
+      font-family: var(--font); font-size: 14px; font-weight: 700;
+      letter-spacing: 2.5px; cursor: pointer;
+      transition: all 0.3s; margin-top: 8px;
+      position: relative; overflow: hidden;
+      box-shadow: 0 0 20px rgba(34,211,238,0.08);
+    }
+    .login-btn::before {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.06), transparent);
+      pointer-events: none;
+    }
+    .login-btn:hover {
+      box-shadow: 0 0 35px rgba(34, 211, 238, 0.25), 0 8px 24px rgba(0,0,0,0.3);
+      transform: translateY(-2px);
+      border-color: rgba(34, 211, 238, 0.6);
+    }
+    .login-btn:active { transform: translateY(0); }
+    .login-btn.loading { pointer-events: none; opacity: 0.8; }
+    .login-btn .spinner {
+      display: none; width: 18px; height: 18px;
+      border: 2px solid rgba(34, 211, 238, 0.3);
+      border-top-color: var(--cyan); border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      margin: 0 auto;
+    }
+    .login-btn.loading .btn-text { display: none; }
+    .login-btn.loading .spinner { display: block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .login-error {
+      background: rgba(248, 113, 113, 0.08);
+      border: 1px solid rgba(248, 113, 113, 0.35);
+      border-radius: 10px; padding: 10px 14px;
+      font-size: 12px; color: #ffc9c9;
+      display: none; margin-bottom: 14px;
+      animation: shakeX 0.4s ease;
+      position: relative; z-index: 1;
+    }
+    .login-error.show { display: block; }
+    @keyframes shakeX {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-5px); }
+      50% { transform: translateX(5px); }
+      75% { transform: translateX(-3px); }
+    }
+
+    .login-footer {
+      text-align: center; margin-top: 20px; position: relative; z-index: 1;
+    }
+    .login-footer a {
+      color: var(--faint); font-size: 11px; text-decoration: none;
+      letter-spacing: 1px; transition: color 0.2s;
+    }
+    .login-footer a:hover { color: var(--cyan); }
+
+    .demo-hint {
+      text-align: center; margin-top: 16px; padding: 10px; border-radius: 12px;
+      background: rgba(52, 211, 153, 0.05);
+      border: 1px dashed rgba(52, 211, 153, 0.25);
+      position: relative; z-index: 1;
+    }
+    .demo-hint .hint-label {
+      font-size: 9px; letter-spacing: 2px; color: var(--ok);
+      font-weight: 600; margin-bottom: 4px; text-transform: uppercase;
+      text-shadow: 0 0 6px rgba(52,211,153,0.3);
+    }
+    .demo-hint .hint-creds {
+      font-family: var(--mono); font-size: 12px; color: var(--muted);
+      line-height: 1.6;
+    }
+    .demo-hint .hint-creds b { color: var(--ok); text-shadow: 0 0 4px rgba(52,211,153,0.25); }
+
+    /* Forgot password modal */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(3, 6, 14, 0.85);
+      display: none; align-items: center; justify-content: center;
+      z-index: 200; backdrop-filter: blur(8px);
+    }
+    .modal-overlay.show { display: flex; }
+    .modal-card {
+      background: rgba(12, 20, 42, 0.92);
+      border: 1px solid rgba(80, 140, 220, 0.2);
+      border-radius: 18px; padding: 30px 28px;
+      max-width: 380px; width: 90%; text-align: center;
+      animation: cardIn 0.35s ease;
+      backdrop-filter: blur(20px);
+      box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6);
+      position: relative; overflow: hidden;
+    }
+    .modal-card::before {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.04), transparent);
+      pointer-events: none;
+    }
+    .modal-card h3 { font-size: 16px; margin-bottom: 10px; letter-spacing: 1px; position: relative; }
+    .modal-card p { font-size: 12.5px; color: var(--muted); line-height: 1.6; margin-bottom: 18px; position: relative; }
+    .modal-close-btn {
+      padding: 10px 28px; border-radius: 10px;
+      border: 1px solid rgba(80,140,220,0.2); background: rgba(18,30,55,0.6);
+      color: var(--text); font-family: var(--font); font-size: 12px;
+      font-weight: 600; cursor: pointer; transition: all 0.25s;
+      position: relative; overflow: hidden;
+    }
+    .modal-close-btn::before {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.04), transparent);
+      pointer-events: none;
+    }
+    .modal-close-btn:hover { border-color: var(--glass-border-hover); box-shadow: 0 0 16px rgba(34,211,238,0.1); }
+  </style>
+</head>
+<body>
+  <!-- Background effects -->
+  <div class="bg-orb o1"></div>
+  <div class="bg-orb o2"></div>
+  <div class="bg-orb o3"></div>
+  <div class="bg-particles" id="bg-particles"></div>
+
+  <div class="login-container">
+    <div class="login-card">
+      <div class="login-brand">
+        <div class="login-logo">🚛</div>
+        <div class="login-title">TRUCKPULSE</div>
+        <div class="login-subtitle">AI Vehicle Telemetry · Admin Portal</div>
+      </div>
+
+      <div class="login-error" id="login-error">
+        <span>⚠ </span><span id="error-text">Invalid credentials. Please try again.</span>
+      </div>
+
+      <form id="login-form" autocomplete="off">
+        <div class="form-group">
+          <label class="form-label" for="username">Username</label>
+          <div class="form-input-wrap">
+            <input class="form-input" type="text" id="username" placeholder="Enter admin username" autofocus />
+            <span class="form-input-icon">👤</span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="password">Password</label>
+          <div class="form-input-wrap">
+            <input class="form-input" type="password" id="password" placeholder="Enter password" />
+            <span class="form-input-icon">🔒</span>
+          </div>
+        </div>
+
+        <div class="form-group" style="display:flex; justify-content:space-between; align-items:center;">
+          <label class="form-checkbox">
+            <input type="checkbox" id="remember-me" />
+            <span class="check-box">
+              <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                <path d="M1 4L3.5 6.5L9 1" stroke="#22d3ee" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </span>
+            <span class="check-label">Remember me</span>
+          </label>
+          <a href="#" id="forgot-link" style="font-size:11px; color:var(--faint); text-decoration:none; transition:color 0.2s; position:relative; z-index:1;" onmouseover="this.style.color='var(--cyan)'" onmouseout="this.style.color='var(--faint)'">Forgot password?</a>
+        </div>
+
+        <button type="submit" class="login-btn" id="login-btn">
+          <span class="btn-text">SIGN IN</span>
+          <div class="spinner"></div>
+        </button>
+      </form>
+
+      <div class="demo-hint">
+        <div class="hint-label">✦ Demo Credentials</div>
+        <div class="hint-creds">
+          <b>admin</b> / <b>truckpulse</b>
+        </div>
+      </div>
+
+      <div class="login-footer">
+        <a href="home.html" style="display:inline-flex;align-items:center;gap:6px;">← Back to Home</a>
+        <div style="margin-top:8px;font-size:10px;color:var(--faint);letter-spacing:0.5px;">TruckPulse Fleet Management System v3.0</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Forgot password modal -->
+  <div class="modal-overlay" id="forgot-modal">
+    <div class="modal-card">
+      <h3>🔑 Password Recovery</h3>
+      <p>This is a demo application. Use the credentials shown below the login form to access the dashboard.</p>
+      <p style="font-family:var(--mono); font-size:13px; color:var(--ok); text-shadow: 0 0 4px rgba(52,211,153,0.3);">admin / truckpulse</p>
+      <button class="modal-close-btn" id="modal-close">Got it</button>
+    </div>
+  </div>
+
+  <script>
+    // ---- Background particles ----
+    (function() {
+      const container = document.getElementById('bg-particles');
+      const colors = ['#22d3ee', '#a78bfa', '#34d399', '#f472b6', '#fbbf24'];
+      for (let i = 0; i < 40; i++) {
+        const p = document.createElement('div');
+        p.className = 'particle';
+        p.style.left = Math.random() * 100 + '%';
+        p.style.animationDuration = (8 + Math.random() * 14) + 's';
+        p.style.animationDelay = (Math.random() * 10) + 's';
+        p.style.background = colors[Math.floor(Math.random() * colors.length)];
+        p.style.width = p.style.height = (2 + Math.random() * 3) + 'px';
+        container.appendChild(p);
+      }
+    })();
+
+    // ---- Login logic ----
+    const USERS = {
+      admin: { password: 'truckpulse', role: 'admin', name: 'Admin User' },
+      operator: { password: 'fleet123', role: 'operator', name: 'Fleet Operator' },
+      viewer: { password: 'view456', role: 'viewer', name: 'Read-Only Viewer' },
+    };
+
+    const form = document.getElementById('login-form');
+    const errorEl = document.getElementById('login-error');
+    const errorText = document.getElementById('error-text');
+    const loginBtn = document.getElementById('login-btn');
+
+    // Check if already logged in
+    const session = sessionStorage.getItem('truckpulse_session');
+    if (session) {
+      try {
+        const s = JSON.parse(session);
+        if (s.expiresAt > Date.now()) {
+          window.location.href = 'index.html';
+        } else {
+          sessionStorage.removeItem('truckpulse_session');
+        }
+      } catch(e) { sessionStorage.removeItem('truckpulse_session'); }
+    }
+
+    // Check localStorage for remember me
+    const saved = localStorage.getItem('truckpulse_remember');
+    if (saved) {
+      try {
+        const r = JSON.parse(saved);
+        document.getElementById('username').value = r.username || '';
+        document.getElementById('remember-me').checked = true;
+      } catch(e) {}
+    }
+
+    form.addEventListener('submit', function(e) {
+      e.preventDefault();
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+      const remember = document.getElementById('remember-me').checked;
+
+      if (!username || !password) {
+        showError('Please enter both username and password.');
+        return;
+      }
+
+      loginBtn.classList.add('loading');
+      errorEl.classList.remove('show');
+
+      // Simulate network delay
+      setTimeout(function() {
+        const user = USERS[username];
+        if (!user || user.password !== password) {
+          showError('Invalid credentials. Please try again.');
+          loginBtn.classList.remove('loading');
+          return;
+        }
+
+        // Success
+        const sessionData = {
+          username: username,
+          role: user.role,
+          name: user.name,
+          loginTime: Date.now(),
+          expiresAt: Date.now() + (8 * 60 * 60 * 1000),
+        };
+        sessionStorage.setItem('truckpulse_session', JSON.stringify(sessionData));
+
+        if (remember) {
+          localStorage.setItem('truckpulse_remember', JSON.stringify({ username }));
+        } else {
+          localStorage.removeItem('truckpulse_remember');
+        }
+
+        // Transition to dashboard
+        document.querySelector('.login-card').style.transition = 'all 0.4s ease';
+        document.querySelector('.login-card').style.transform = 'scale(0.95)';
+        document.querySelector('.login-card').style.opacity = '0';
+        setTimeout(function() {
+          window.location.href = 'index.html';
+        }, 400);
+      }, 800);
+    });
+
+    function showError(msg) {
+      errorText.textContent = msg;
+      errorEl.classList.remove('show');
+      void errorEl.offsetWidth;
+      errorEl.classList.add('show');
+    }
+
+    // Forgot password modal
+    document.getElementById('forgot-link').addEventListener('click', function(e) {
+      e.preventDefault();
+      document.getElementById('forgot-modal').classList.add('show');
+    });
+    document.getElementById('modal-close').addEventListener('click', function() {
+      document.getElementById('forgot-modal').classList.remove('show');
+    });
+    document.getElementById('forgot-modal').addEventListener('click', function(e) {
+      if (e.target === this) this.classList.remove('show');
+    });
+  </script>
+</body>
+</html>

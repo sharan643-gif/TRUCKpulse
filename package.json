@@ -1,0 +1,18 @@
+{
+  "name": "similation---copy",
+  "version": "1.0.0",
+  "description": "A full interactive commercial-vehicle simulation: simulated OBD-II telemetry → data processing → AI health analysis → health score → risk detection → early warning → user alert → recommended action.",
+  "main": "index.js",
+  "scripts": {
+    "build": "node build.js",
+    "start": "node build.js && echo '✅ Open dist/index.html in your browser!'",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "esbuild": "^0.28.2"
+  }
+}

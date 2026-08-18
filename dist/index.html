@@ -1,0 +1,4566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TruckPulse — Vehicle Simulation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+
+  <!-- Leaflet.js — FREE OpenStreetMap -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <style>
+/* ============================================================
+   TruckPulse — iOS 27 Liquid Glass Design System
+   Holographic panels · animated borders · cyber grid · neon glow
+   ============================================================ */
+
+:root {
+  --bg-0: #030810;
+  --bg-1: #060d1c;
+  --bg-2: #0a1428;
+
+  /* Liquid glass layers */
+  --glass-bg: rgba(12, 20, 42, 0.55);
+  --glass-bg-hover: rgba(18, 30, 58, 0.65);
+  --glass-border: rgba(80, 140, 220, 0.12);
+  --glass-border-hover: rgba(80, 160, 240, 0.25);
+  --glass-blur: 20px;
+  --glass-shine: linear-gradient(135deg, rgba(255,255,255,0.06) 0%, transparent 50%, rgba(255,255,255,0.02) 100%);
+
+  /* Panel (legacy alias) */
+  --panel: var(--glass-bg);
+  --panel-solid: #0c1428;
+  --border: var(--glass-border);
+  --border-strong: rgba(100, 170, 255, 0.3);
+  --text: #e4edff;
+  --muted: #7e9cc4;
+  --faint: #4a6890;
+
+  /* Status colors */
+  --ok: #34d399;
+  --ok-dim: rgba(52, 211, 153, 0.12);
+  --ok-glow: rgba(52, 211, 153, 0.35);
+  --warn: #fbbf24;
+  --warn-dim: rgba(251, 191, 36, 0.12);
+  --warn-glow: rgba(251, 191, 36, 0.35);
+  --bad: #f87171;
+  --bad-dim: rgba(248, 113, 113, 0.12);
+  --bad-glow: rgba(248, 113, 113, 0.35);
+  --cyan: #22d3ee;
+  --cyan-glow: rgba(34, 211, 238, 0.35);
+  --purple: #a78bfa;
+  --pink: #f472b6;
+
+  /* Neon accents */
+  --neon-cyan: 0 0 12px rgba(34,211,238,0.4), 0 0 40px rgba(34,211,238,0.15);
+  --neon-purple: 0 0 12px rgba(167,139,250,0.4), 0 0 40px rgba(167,139,250,0.15);
+  --neon-ok: 0 0 12px rgba(52,211,153,0.4), 0 0 40px rgba(52,211,153,0.12);
+  --neon-bad: 0 0 12px rgba(248,113,113,0.45), 0 0 40px rgba(248,113,113,0.15);
+
+  --radius: 16px;
+  --radius-sm: 10px;
+  --shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 16px 64px rgba(0, 0, 0, 0.6), 0 4px 16px rgba(0, 0, 0, 0.4);
+
+  --font: 'Space Grotesk', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --mono: 'JetBrains Mono', 'Cascadia Code', Consolas, monospace;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+
+body {
+  font-family: var(--font);
+  color: var(--text);
+  background: var(--bg-0);
+  min-height: 100vh;
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* ============ CYBER GRID BACKGROUND ============ */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(1200px 600px at 15% -10%, rgba(34, 211, 238, 0.07), transparent 55%),
+    radial-gradient(900px 700px at 100% 0%, rgba(167, 139, 250, 0.05), transparent 50%),
+    linear-gradient(180deg, var(--bg-1), var(--bg-0) 60%);
+}
+
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.04;
+  background-image:
+    linear-gradient(rgba(34, 211, 238, 0.5) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(34, 211, 238, 0.5) 1px, transparent 1px);
+  background-size: 60px 60px;
+  mask-image: radial-gradient(ellipse at center, rgba(0,0,0,0.5) 0%, transparent 70%);
+  -webkit-mask-image: radial-gradient(ellipse at center, rgba(0,0,0,0.5) 0%, transparent 70%);
+}
+
+/* Floating ambient orbs */
+.bg-orb {
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(100px);
+  opacity: 0.2;
+  pointer-events: none;
+  z-index: 0;
+  animation: orbFloat 16s ease-in-out infinite alternate;
+}
+.bg-orb.o1 { width: 500px; height: 500px; top: -15%; left: -8%; background: rgba(34,211,238,0.15); }
+.bg-orb.o2 { width: 400px; height: 400px; top: 40%; right: -10%; background: rgba(167,139,250,0.12); animation-delay: 4s; }
+.bg-orb.o3 { width: 350px; height: 350px; bottom: 0%; left: 25%; background: rgba(244,114,182,0.08); animation-delay: 8s; }
+
+@keyframes orbFloat {
+  0% { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(40px, -50px) scale(1.15); }
+}
+
+.mono { font-family: var(--mono); }
+
+#app { max-width: 1640px; margin: 0 auto; padding: 14px 18px 40px; position: relative; z-index: 1; }
+
+/* ============================================================
+   LIQUID GLASS PANEL — core reusable element
+   ============================================================ */
+.liquid-glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  position: relative;
+  transition: border-color 0.35s, box-shadow 0.35s, transform 0.25s;
+}
+
+/* Holographic shine overlay */
+.liquid-glass::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--glass-shine);
+  pointer-events: none;
+  z-index: 1;
+}
+.liquid-glass:hover {
+  border-color: var(--glass-border-hover);
+  box-shadow: var(--shadow-lg), 0 0 30px rgba(34, 211, 238, 0.08);
+}
+.liquid-glass:hover::after { opacity: 1; }
+
+/* ============ HEADER ============ */
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 20px;
+  margin-bottom: 14px;
+  background: rgba(8, 14, 30, 0.7);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(80, 140, 220, 0.1);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255,255,255,0.04);
+  position: sticky;
+  top: 8px;
+  z-index: 40;
+}
+
+.brand { display: flex; align-items: center; gap: 12px; }
+.brand-logo {
+  font-size: 26px;
+  filter: drop-shadow(0 0 12px rgba(34, 211, 238, 0.6));
+  animation: floaty 4s ease-in-out infinite;
+}
+@keyframes floaty { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+
+.brand-name {
+  font-weight: 700;
+  font-size: 19px;
+  letter-spacing: 3.5px;
+  background: linear-gradient(90deg, #7dd3fc, #22d3ee 30%, #a78bfa 60%, #f472b6 90%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: gradientShift 6s ease-in-out infinite;
+}
+@keyframes gradientShift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+.brand-sub { display: block; font-size: 9px; letter-spacing: 2.8px; color: var(--faint); font-weight: 500; }
+
+.header-center { display: flex; align-items: center; gap: 10px; }
+.hdr-status { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; letter-spacing: 1.4px; color: var(--muted); font-weight: 600; }
+.hdr-dot {
+  width: 9px; height: 9px; border-radius: 50%; background: var(--cyan);
+  box-shadow: 0 0 8px var(--cyan-glow);
+}
+.hdr-dot.pulse { animation: dotPulse 1.6s ease-in-out infinite; }
+@keyframes dotPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(34, 211, 238, 0.6); opacity: 1; }
+  50% { box-shadow: 0 0 0 8px rgba(34, 211, 238, 0); opacity: 0.7; }
+}
+.hdr-band {
+  font-size: 11px; font-weight: 700; letter-spacing: 1.2px;
+  padding: 5px 14px; border-radius: 20px; border: 1px solid;
+  backdrop-filter: blur(8px);
+}
+.hdr-band.band-healthy { color: var(--ok); border-color: rgba(52,211,153,0.4); background: var(--ok-dim); box-shadow: var(--neon-ok); }
+.hdr-band.band-attention { color: var(--warn); border-color: rgba(251,191,36,0.4); background: var(--warn-dim); box-shadow: 0 0 12px var(--warn-glow); }
+.hdr-band.band-critical { color: var(--bad); border-color: rgba(248,113,113,0.45); background: var(--bad-dim); box-shadow: var(--neon-bad); animation: criticalPulse 1.5s ease-in-out infinite; }
+@keyframes criticalPulse {
+  0%, 100% { box-shadow: 0 0 12px rgba(248,113,113,0.4); }
+  50% { box-shadow: 0 0 24px rgba(248,113,113,0.6); }
+}
+
+.header-right { display: flex; align-items: center; gap: 12px; }
+.icon-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(20, 34, 60, 0.5); color: var(--muted);
+  border: 1px solid rgba(80, 140, 220, 0.12); border-radius: 20px;
+  padding: 6px 14px; font-size: 11px; letter-spacing: 1px;
+  cursor: pointer; font-family: var(--font); transition: all 0.25s;
+  backdrop-filter: blur(8px);
+}
+.icon-btn:hover { border-color: var(--glass-border-hover); color: var(--text); background: rgba(30, 50, 85, 0.6); box-shadow: 0 0 16px rgba(34,211,238,0.1); }
+.icon-btn.on { color: var(--ok); border-color: rgba(52,211,153,0.5); background: var(--ok-dim); box-shadow: var(--neon-ok); }
+.clock { font-family: var(--mono); font-size: 15px; color: var(--cyan); letter-spacing: 2px; text-shadow: 0 0 10px var(--cyan-glow); }
+
+/* ============ PANELS ============ */
+.main-grid {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr) 340px;
+  gap: 14px;
+  align-items: start;
+}
+.col { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.status-row { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 14px; }
+
+.panel {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 16px 17px;
+  position: relative;
+  transition: border-color 0.35s, box-shadow 0.35s, transform 0.25s;
+}
+
+.panel:hover {
+  border-color: var(--glass-border-hover);
+  box-shadow: var(--shadow-lg), 0 0 24px rgba(34,211,238,0.06);
+  transform: translateY(-1px);
+}
+
+.panel-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+.panel-title { font-size: 13px; font-weight: 700; letter-spacing: 1.6px; color: var(--text); display: flex; align-items: center; gap: 7px; }
+.panel-sub { font-size: 10px; letter-spacing: 1px; color: var(--faint); text-transform: uppercase; }
+
+.live-chip {
+  font-size: 10px; font-weight: 700; letter-spacing: 1.4px;
+  padding: 4px 12px; border-radius: 20px;
+  backdrop-filter: blur(8px);
+}
+.live-chip.running { color: var(--ok); background: var(--ok-dim); border: 1px solid rgba(52,211,153,0.35); box-shadow: var(--neon-ok); }
+.live-chip.paused { color: var(--muted); background: rgba(80,110,160,0.12); border: 1px solid var(--border); }
+
+/* ============ SIM CONTROLS ============ */
+.sim-controls { display: flex; flex-direction: column; gap: 13px; }
+.btn-row { display: flex; gap: 8px; }
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  border-radius: var(--radius-sm); border: 1px solid var(--glass-border);
+  background: rgba(18, 30, 55, 0.5); color: var(--text);
+  font-family: var(--font); font-size: 12.5px; font-weight: 600; letter-spacing: 1px;
+  padding: 11px 12px; cursor: pointer; transition: all 0.22s;
+  flex: 1; backdrop-filter: blur(10px); position: relative; overflow: hidden;
+}
+.btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--glass-shine);
+  pointer-events: none;
+}
+.btn:hover { border-color: var(--glass-border-hover); transform: translateY(-1px); box-shadow: 0 4px 16px rgba(0,0,0,0.3); }
+.btn:active { transform: translateY(0); }
+
+.btn-start {
+  flex: 2.2;
+  background: linear-gradient(135deg, rgba(34, 211, 238, 0.2), rgba(34, 211, 238, 0.06));
+  border-color: rgba(34, 211, 238, 0.4); color: #bdf2ff;
+  box-shadow: 0 0 20px rgba(34,211,238,0.1);
+}
+.btn-start:hover { box-shadow: 0 0 30px rgba(34, 211, 238, 0.25), 0 4px 16px rgba(0,0,0,0.3); }
+.btn-start.is-paused {
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.2), rgba(251, 191, 36, 0.05));
+  border-color: rgba(251,191,36,0.5); color: #ffe6a8;
+  box-shadow: 0 0 20px rgba(251,191,36,0.1);
+}
+.btn-reset { color: var(--muted); }
+
+.ctrl-group { display: flex; flex-direction: column; gap: 8px; }
+.ctrl-label { font-size: 9.5px; letter-spacing: 2.4px; color: var(--faint); font-weight: 600; }
+
+.scenario-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+.scenario-btn {
+  display: flex; align-items: center; gap: 7px;
+  padding: 9px 10px; border-radius: var(--radius-sm);
+  border: 1px solid var(--glass-border); background: rgba(14, 24, 48, 0.6);
+  color: var(--muted); font-family: var(--font); font-size: 11.5px; font-weight: 600;
+  cursor: pointer; transition: all 0.2s; text-align: left;
+  backdrop-filter: blur(8px); position: relative; overflow: hidden;
+}
+.scenario-btn::before { content: ''; position: absolute; inset: 0; background: var(--glass-shine); pointer-events: none; }
+.scenario-btn:hover { color: var(--text); border-color: var(--glass-border-hover); transform: translateY(-1px); }
+.scenario-btn .scn-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--faint); flex: none; transition: all 0.25s; }
+.scenario-btn[data-scenario="OVERHEATING"] .scn-dot { background: #fb923c; box-shadow: 0 0 6px rgba(251,146,60,0.5); }
+.scenario-btn[data-scenario="LOW_VOLTAGE"] .scn-dot { background: #60a5fa; box-shadow: 0 0 6px rgba(96,165,250,0.5); }
+.scenario-btn[data-scenario="HIGH_VIBRATION"] .scn-dot { background: #f472b6; box-shadow: 0 0 6px rgba(244,114,182,0.5); }
+.scenario-btn[data-scenario="ENGINE_INSTABILITY"] .scn-dot { background: #a78bfa; box-shadow: 0 0 6px rgba(167,139,250,0.5); }
+.scenario-btn[data-scenario="CRITICAL_FAILURE"] .scn-dot { background: #f87171; box-shadow: 0 0 6px rgba(248,113,113,0.5); }
+.scenario-btn[data-scenario="RECOVERY"] .scn-dot { background: #34d399; box-shadow: 0 0 6px rgba(52,211,153,0.5); }
+
+.scenario-btn.active {
+  background: linear-gradient(135deg, rgba(34, 211, 238, 0.18), rgba(34, 211, 238, 0.04));
+  border-color: rgba(34, 211, 238, 0.55); color: var(--text);
+  box-shadow: 0 0 18px rgba(34, 211, 238, 0.15);
+}
+.scenario-btn.active[data-scenario="CRITICAL_FAILURE"] { border-color: rgba(248,113,113,0.6); box-shadow: 0 0 18px rgba(248,113,113,0.2); }
+.scenario-btn.active[data-scenario="RECOVERY"] { border-color: rgba(52,211,153,0.6); box-shadow: 0 0 18px rgba(52,211,153,0.18); }
+.scenario-btn.active .scn-dot { background: #22d3ee; box-shadow: 0 0 8px var(--cyan-glow); }
+.scenario-btn.active[data-scenario="CRITICAL_FAILURE"] .scn-dot { background: #f87171; box-shadow: 0 0 8px var(--bad-glow); }
+.scenario-btn.active[data-scenario="RECOVERY"] .scn-dot { background: #34d399; box-shadow: 0 0 8px var(--ok-glow); }
+
+.segmented { display: flex; border: 1px solid var(--glass-border); border-radius: var(--radius-sm); overflow: hidden; background: rgba(8, 14, 30, 0.6); backdrop-filter: blur(8px); }
+.seg-btn {
+  flex: 1; padding: 8px 0; border: none; background: transparent;
+  color: var(--muted); font-family: var(--mono); font-size: 12px; font-weight: 600;
+  cursor: pointer; transition: all 0.2s; border-right: 1px solid var(--glass-border);
+}
+.seg-btn:last-child { border-right: none; }
+.seg-btn:hover { color: var(--text); background: rgba(34,211,238,0.04); }
+.seg-btn.active {
+  background: linear-gradient(135deg, rgba(34,211,238,0.25), rgba(34,211,238,0.08));
+  color: #d9f8ff;
+  box-shadow: inset 0 -2px 0 var(--cyan);
+}
+
+.btn-maintenance {
+  width: 100%;
+  background: linear-gradient(135deg, rgba(52, 211, 153, 0.18), rgba(52, 211, 153, 0.05));
+  border-color: rgba(52, 211, 153, 0.4); color: #bdf5dd;
+}
+.btn-maintenance:hover { box-shadow: 0 0 24px rgba(52, 211, 153, 0.25); }
+.btn-maintenance.pulse { animation: maintPulse 1.8s ease-in-out infinite; }
+@keyframes maintPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.35); }
+  50% { box-shadow: 0 0 0 10px rgba(52, 211, 153, 0); }
+}
+.maintenance-hint { font-size: 10.5px; color: var(--faint); line-height: 1.5; text-align: center; }
+
+/* ============ FLEET ============ */
+.fleet-list { display: flex; flex-direction: column; gap: 8px; }
+.fleet-card {
+  display: flex; flex-direction: column; gap: 5px;
+  padding: 10px 12px; border-radius: var(--radius-sm);
+  border: 1px solid var(--glass-border); background: rgba(12, 22, 44, 0.55);
+  color: var(--text); cursor: pointer; text-align: left; font-family: var(--font);
+  transition: all 0.22s; width: 100%;
+  backdrop-filter: blur(10px); position: relative; overflow: hidden;
+}
+
+.fleet-card:hover { border-color: var(--glass-border-hover); transform: translateY(-1px); box-shadow: 0 6px 20px rgba(0,0,0,0.3); }
+.fleet-card.active {
+  border-color: rgba(34, 211, 238, 0.55);
+  background: linear-gradient(135deg, rgba(34,211,238,0.1), rgba(12,22,44,0.55));
+  box-shadow: 0 0 20px rgba(34,211,238,0.12), 0 6px 20px rgba(0,0,0,0.3);
+}
+.fleet-card-top { display: flex; justify-content: space-between; align-items: center; position: relative; z-index: 1; }
+.fleet-name { font-weight: 700; font-size: 13px; }
+.fleet-status-dot { font-size: 9px; color: var(--faint); }
+.fleet-status-dot.band-healthy { color: var(--ok); text-shadow: 0 0 6px var(--ok-glow); }
+.fleet-status-dot.band-attention { color: var(--warn); text-shadow: 0 0 6px var(--warn-glow); }
+.fleet-status-dot.band-critical { color: var(--bad); animation: dotPulseBad 1.4s infinite; text-shadow: 0 0 6px var(--bad-glow); }
+@keyframes dotPulseBad { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+.fleet-plate { font-size: 10px; color: var(--faint); letter-spacing: 1px; position: relative; z-index: 1; }
+.fleet-health-row { display: flex; align-items: baseline; gap: 4px; position: relative; z-index: 1; }
+.fleet-health-val { font-family: var(--mono); font-size: 20px; font-weight: 600; color: var(--text); }
+.fleet-health-max { font-size: 10px; color: var(--faint); }
+.fleet-band-chip { margin-left: auto; font-size: 12px; }
+.fleet-route { font-size: 9.5px; color: var(--cyan); letter-spacing: 0.3px; opacity: 0.8; text-shadow: 0 0 6px var(--cyan-glow); position: relative; z-index: 1; }
+.fleet-bar { height: 5px; border-radius: 4px; background: rgba(30, 50, 80, 0.5); overflow: hidden; position: relative; z-index: 1; }
+.fleet-bar-fill { height: 100%; border-radius: 4px; transition: width 0.3s ease; }
+.fleet-bar-fill.band-healthy { background: linear-gradient(90deg, #10b981, var(--ok)); box-shadow: 0 0 8px var(--ok-glow); }
+.fleet-bar-fill.band-attention { background: linear-gradient(90deg, #d97706, var(--warn)); box-shadow: 0 0 8px var(--warn-glow); }
+.fleet-bar-fill.band-critical { background: linear-gradient(90deg, #dc2626, var(--bad)); box-shadow: 0 0 8px var(--bad-glow); }
+
+/* ============ HEALTH SCORE ============ */
+.health-main { display: flex; gap: 16px; align-items: center; }
+.ring-wrap { position: relative; flex: none; }
+.ring { transform: rotate(-90deg); }
+.ring-bg { fill: none; stroke: rgba(50, 80, 130, 0.2); stroke-width: 9; }
+.ring-fg {
+  fill: none; stroke: var(--ok); stroke-width: 9; stroke-linecap: round;
+  stroke-dasharray: 339.3; stroke-dashoffset: 339.3;
+  transition: stroke-dashoffset 0.4s ease, stroke 0.4s ease;
+  filter: drop-shadow(0 0 8px rgba(52, 211, 153, 0.6));
+}
+.ring-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.ring-value { font-family: var(--mono); font-size: 34px; font-weight: 700; line-height: 1; text-shadow: 0 0 12px rgba(34,211,238,0.3); }
+.ring-max { font-size: 10px; color: var(--faint); letter-spacing: 1px; }
+
+.health-meta { display: flex; flex-direction: column; gap: 9px; flex: 1; min-width: 0; }
+.status-badge {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: 12.5px; font-weight: 700; letter-spacing: 1.6px;
+  padding: 6px 14px; border-radius: 20px; width: fit-content;
+  border: 1px solid; backdrop-filter: blur(8px);
+}
+.status-badge.band-healthy { color: var(--ok); border-color: rgba(52,211,153,0.4); background: var(--ok-dim); box-shadow: var(--neon-ok); }
+.status-badge.band-attention { color: var(--warn); border-color: rgba(251,191,36,0.4); background: var(--warn-dim); box-shadow: 0 0 12px var(--warn-glow); }
+.status-badge.band-critical { color: var(--bad); border-color: rgba(248,113,113,0.45); background: var(--bad-dim); box-shadow: var(--neon-bad); animation: badgeShake 1.2s ease-in-out infinite; }
+@keyframes badgeShake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-2px); } 40% { transform: translateX(2px); }
+  60% { transform: translateX(-1px); } 80% { transform: translateX(1px); }
+}
+.meta-chips { display: flex; gap: 8px; }
+.chip {
+  display: flex; flex-direction: column; gap: 2px;
+  background: rgba(14, 26, 50, 0.6); border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm); padding: 6px 10px;
+  backdrop-filter: blur(8px); transition: border-color 0.25s;
+}
+.chip:hover { border-color: var(--glass-border-hover); }
+.chip-label { font-size: 8.5px; letter-spacing: 1.8px; color: var(--faint); }
+.chip-value { font-family: var(--mono); font-size: 14px; font-weight: 600; }
+.chip-value.risk-low { color: var(--ok); text-shadow: 0 0 6px var(--ok-glow); }
+.chip-value.risk-medium { color: var(--warn); text-shadow: 0 0 6px var(--warn-glow); }
+.chip-value.risk-high { color: var(--bad); text-shadow: 0 0 6px var(--bad-glow); }
+.conf-bar { height: 5px; border-radius: 4px; background: rgba(30, 50, 80, 0.5); overflow: hidden; }
+.conf-fill { height: 100%; border-radius: 4px; background: var(--ok); transition: width 0.4s ease; box-shadow: 0 0 6px var(--ok-glow); }
+.veh-identity { font-size: 10px; color: var(--faint); letter-spacing: 1px; }
+
+.component-breakdown { display: flex; flex-direction: column; gap: 6px; margin-top: 13px; padding-top: 12px; border-top: 1px dashed var(--glass-border); }
+.comp-row { display: flex; align-items: center; gap: 9px; }
+.comp-label { font-size: 10px; color: var(--muted); width: 62px; flex: none; letter-spacing: 0.4px; }
+.comp-bar { flex: 1; height: 6px; border-radius: 4px; background: rgba(30, 50, 80, 0.45); overflow: hidden; }
+.comp-fill { height: 100%; border-radius: 4px; transition: width 0.35s ease, background 0.35s ease; }
+.comp-val { font-size: 10.5px; width: 24px; text-align: right; color: var(--muted); }
+
+/* ============ VEHICLE VISUALIZATION ============ */
+.vehicle-stage { position: relative; }
+.status-pulse { display: inline-flex; align-items: center; gap: 6px; font-size: 10.5px; letter-spacing: 1.2px; color: var(--muted); font-weight: 600; }
+.pulse-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 8px var(--cyan-glow); }
+.status-pulse.band-healthy .pulse-dot { background: var(--ok); box-shadow: 0 0 10px var(--ok-glow); animation: dotPulse 1.6s infinite; }
+.status-pulse.band-attention .pulse-dot { background: var(--warn); box-shadow: 0 0 10px var(--warn-glow); animation: dotPulse 1.3s infinite; }
+.status-pulse.band-critical .pulse-dot { background: var(--bad); box-shadow: 0 0 10px var(--bad-glow); animation: dotPulseBad 0.9s infinite; }
+
+.truck-svg { width: 100%; height: auto; display: block; position: relative; z-index: 2; }
+.conn-svg { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
+.conn-line {
+  fill: none; stroke: rgba(34, 211, 238, 0.35); stroke-width: 1.4;
+  stroke-dasharray: 5 7; animation: dashFlow 1.6s linear infinite;
+  filter: drop-shadow(0 0 4px var(--cyan-glow));
+}
+@keyframes dashFlow { to { stroke-dashoffset: -24; } }
+
+.gauge {
+  position: absolute; z-index: 3;
+  display: flex; flex-direction: column; gap: 1px;
+  background: rgba(8, 16, 32, 0.88); border: 1px solid rgba(80, 140, 220, 0.25);
+  border-radius: 10px; padding: 6px 10px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5), 0 0 8px rgba(34,211,238,0.08);
+  backdrop-filter: blur(12px);
+}
+.gauge-label { font-size: 8px; letter-spacing: 1.6px; color: var(--faint); }
+.gauge-val { font-size: 12.5px; font-weight: 600; color: var(--cyan); white-space: nowrap; text-shadow: 0 0 6px var(--cyan-glow); }
+.g-rpm { top: 8px; left: 8px; }
+.g-temp { top: 74px; left: 8px; }
+.g-volt { top: 8px; right: 8px; }
+.g-vib { top: 74px; right: 8px; }
+
+.veh-glow { transition: opacity 0.8s ease; }
+.wheel { transition: transform 0.05s linear; }
+.data-pulse { animation: datapulse 1.4s ease-in-out infinite; }
+.data-pulse.p2 { animation-delay: 0.5s; }
+@keyframes datapulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
+
+.vehicle-footer { display: flex; justify-content: space-between; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
+.veh-tag { font-size: 10px; letter-spacing: 1px; color: var(--faint); }
+.ok-text { color: var(--ok); text-shadow: 0 0 4px var(--ok-glow); }
+.warn-text { color: var(--warn); text-shadow: 0 0 4px var(--warn-glow); }
+.bad-text { color: var(--bad); font-weight: 600; text-shadow: 0 0 4px var(--bad-glow); }
+
+/* ============ TELEMETRY ============ */
+.metric-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 9px; }
+.metric-card {
+  background: rgba(10, 20, 40, 0.55); border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm); padding: 11px 12px;
+  display: flex; flex-direction: column; gap: 6px;
+  transition: all 0.25s; backdrop-filter: blur(10px);
+  position: relative; overflow: hidden;
+}
+
+.metric-card:hover { border-color: var(--glass-border-hover); transform: translateY(-1px); box-shadow: 0 6px 20px rgba(0,0,0,0.3); }
+.metric-head { display: flex; align-items: center; gap: 6px; }
+.metric-icon { font-size: 13px; }
+.metric-label { font-size: 9.5px; letter-spacing: 1.3px; color: var(--muted); text-transform: uppercase; }
+.metric-value { font-size: 17px; font-weight: 600; color: var(--text); transition: color 0.3s; }
+.metric-bar { height: 5px; border-radius: 4px; background: rgba(30, 50, 80, 0.5); overflow: hidden; }
+.metric-fill { height: 100%; border-radius: 4px; transition: width 0.12s linear, background 0.3s ease; }
+.metric-foot { display: flex; justify-content: space-between; align-items: center; }
+.metric-state { font-size: 9px; letter-spacing: 1px; font-weight: 600; }
+.metric-state.ok { color: var(--ok); text-shadow: 0 0 4px var(--ok-glow); }
+.metric-state.warn { color: var(--warn); text-shadow: 0 0 4px var(--warn-glow); }
+.metric-state.bad { color: var(--bad); text-shadow: 0 0 4px var(--bad-glow); }
+.metric-unit { font-size: 9px; color: var(--faint); }
+
+/* ============ CHARTS ============ */
+.chart-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
+.chart-card {
+  background: rgba(8, 16, 34, 0.55); border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm); padding: 11px 11px 7px;
+  backdrop-filter: blur(10px); position: relative; overflow: hidden;
+}
+
+
+.chart-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
+.chart-label { font-size: 11px; font-weight: 700; letter-spacing: 1.2px; color: var(--muted); text-transform: uppercase; }
+.chart-now { font-size: 13px; color: var(--text); font-weight: 600; }
+.chart-card canvas { width: 100%; display: block; border-radius: 6px; }
+
+/* ============ AI ANALYSIS ============ */
+.ai-state-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 9.5px; font-weight: 700; letter-spacing: 1.4px; color: var(--ok);
+  border: 1px solid rgba(52, 211, 153, 0.4); background: var(--ok-dim);
+  padding: 4px 12px; border-radius: 20px;
+  box-shadow: var(--neon-ok); backdrop-filter: blur(8px);
+}
+.ai-state-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); animation: dotPulse 1.5s infinite; box-shadow: 0 0 6px var(--ok-glow); }
+
+.ai-body { display: flex; align-items: center; gap: 16px; margin-bottom: 12px; }
+.ai-core-wrap { position: relative; flex: none; }
+.ai-core { display: block; }
+.ai-core-center {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 2px; pointer-events: none;
+}
+.ai-core-icon { font-size: 24px; filter: drop-shadow(0 0 10px rgba(34, 211, 238, 0.6)); animation: floaty 3s ease-in-out infinite; }
+.ai-core-health { font-size: 18px; font-weight: 700; color: var(--text); text-shadow: 0 0 8px rgba(34,211,238,0.3); }
+.ai-verdict {
+  flex: 1; font-size: 12.5px; line-height: 1.55; color: var(--muted);
+  background: rgba(10, 18, 36, 0.55); border: 1px dashed var(--glass-border);
+  border-radius: var(--radius-sm); padding: 12px 13px; min-height: 74px;
+  display: flex; align-items: center;
+  backdrop-filter: blur(8px);
+}
+
+.ai-section { margin-top: 12px; }
+.ai-section-title { font-size: 9.5px; letter-spacing: 2.2px; color: var(--faint); font-weight: 600; margin-bottom: 7px; }
+.ai-patterns, .ai-actions { display: flex; flex-direction: column; gap: 6px; }
+.ai-pattern {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 12px; padding: 8px 10px; border-radius: var(--radius-sm);
+  background: rgba(251, 191, 36, 0.07); border: 1px solid rgba(251, 191, 36, 0.28);
+  color: #ffe3a3; backdrop-filter: blur(6px);
+}
+.ai-pattern.sev-high {
+  background: rgba(248, 113, 113, 0.08); border-color: rgba(248, 113, 113, 0.35); color: #ffc9c9;
+  box-shadow: 0 0 8px rgba(248,113,113,0.1);
+}
+.ai-pattern-icon { font-size: 11px; }
+.ai-empty { font-size: 11.5px; color: var(--faint); font-style: italic; padding: 4px 2px; }
+.ai-action { font-size: 12px; color: var(--muted); padding: 5px 2px; }
+.ai-action:first-child { color: #bdf5dd; font-weight: 600; text-shadow: 0 0 4px var(--ok-glow); }
+
+/* ============ TIMELINE ============ */
+.timeline-list { display: flex; flex-direction: column; gap: 2px; max-height: 300px; overflow-y: auto; padding-right: 3px; }
+.timeline-list::-webkit-scrollbar { width: 5px; }
+.timeline-list::-webkit-scrollbar-track { background: transparent; }
+.timeline-list::-webkit-scrollbar-thumb { background: rgba(80,140,220,0.25); border-radius: 3px; }
+.timeline-entry {
+  display: flex; align-items: baseline; gap: 8px;
+  font-size: 11.5px; padding: 5px 7px; border-radius: 6px;
+  border-left: 2px solid var(--glass-border);
+  animation: slideIn 0.3s ease; backdrop-filter: blur(4px);
+}
+@keyframes slideIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: none; } }
+.timeline-entry.lvl-warn { border-left-color: var(--warn); background: rgba(251,191,36,0.04); }
+.timeline-entry.lvl-critical { border-left-color: var(--bad); background: rgba(248,113,113,0.05); box-shadow: inset 0 0 12px rgba(248,113,113,0.05); }
+.timeline-entry.lvl-info { border-left-color: var(--cyan); }
+.timeline-time { font-size: 9.5px; color: var(--faint); flex: none; }
+.timeline-icon { flex: none; font-size: 11px; }
+.timeline-text { color: var(--muted); line-height: 1.4; }
+.timeline-entry.lvl-critical .timeline-text { color: #ffd0d0; }
+.timeline-entry.lvl-warn .timeline-text { color: #ffe8b8; }
+.timeline-empty { font-size: 11.5px; color: var(--faint); font-style: italic; padding: 8px 2px; }
+
+/* ============ ALERT CENTER ============ */
+.ac-list { display: flex; flex-direction: column; gap: 8px; max-height: 300px; overflow-y: auto; padding-right: 3px; }
+.ac-list::-webkit-scrollbar { width: 5px; }
+.ac-list::-webkit-scrollbar-track { background: transparent; }
+.ac-list::-webkit-scrollbar-thumb { background: rgba(80,140,220,0.25); border-radius: 3px; }
+.ac-empty { font-size: 11.5px; color: var(--faint); font-style: italic; padding: 8px 2px; }
+.ac-entry {
+  border: 1px solid var(--glass-border); border-radius: var(--radius-sm);
+  padding: 9px 11px; font-size: 11.5px; background: rgba(12, 22, 44, 0.55);
+  animation: slideIn 0.35s ease; backdrop-filter: blur(8px);
+  position: relative; overflow: hidden;
+}
+.ac-entry::before { content: ''; position: absolute; inset: 0; background: var(--glass-shine); pointer-events: none; }
+.ac-entry > * { position: relative; z-index: 1; }
+.ac-entry.lvl-warning { border-color: rgba(251,191,36,0.35); background: rgba(251,191,36,0.04); }
+.ac-entry.lvl-critical { border-color: rgba(248,113,113,0.45); background: rgba(248,113,113,0.06); box-shadow: 0 0 10px rgba(248,113,113,0.08); }
+.ac-entry.lvl-info { border-color: rgba(52,211,153,0.35); background: rgba(52,211,153,0.04); }
+.ac-head { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
+.ac-title { font-weight: 700; font-size: 11.5px; }
+.ac-entry.lvl-critical .ac-title { color: #ffc9c9; text-shadow: 0 0 4px var(--bad-glow); }
+.ac-entry.lvl-warning .ac-title { color: #ffe8b8; }
+.ac-time { font-size: 9px; color: var(--faint); flex: none; }
+.ac-body { color: var(--muted); line-height: 1.45; margin-bottom: 5px; }
+.ac-foot { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 10.5px; color: var(--faint); }
+.ac-kv b { color: var(--text); font-weight: 600; }
+
+/* ============ WHATSAPP PREVIEW ============ */
+.wa-phone {
+  background: #0b141a; border: 1px solid #1f2c33; border-radius: 20px;
+  overflow: hidden; font-size: 12px;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03), 0 10px 30px rgba(0,0,0,0.55);
+}
+.wa-header {
+  display: flex; align-items: center; gap: 10px;
+  background: #202c33; padding: 10px 13px;
+}
+.wa-avatar {
+  width: 34px; height: 34px; border-radius: 50%;
+  background: linear-gradient(135deg, #25d366, #128c7e);
+  display: flex; align-items: center; justify-content: center; font-size: 17px;
+  box-shadow: 0 0 10px rgba(37,211,102,0.3);
+}
+.wa-header-text { display: flex; flex-direction: column; line-height: 1.25; }
+.wa-contact { font-weight: 700; color: #e9edef; font-size: 12.5px; }
+.wa-status { font-size: 10px; color: #8696a0; }
+.wa-more { margin-left: auto; color: #8696a0; font-size: 15px; }
+.wa-chat {
+  background:
+    radial-gradient(circle at 20% 10%, rgba(37,211,102,0.04), transparent 50%),
+    #0b141a;
+  padding: 12px; min-height: 150px; display: flex; flex-direction: column; gap: 8px;
+}
+.wa-date { text-align: center; font-size: 9.5px; color: #8696a0; letter-spacing: 1px; }
+.wa-bubble {
+  background: #202c33; border-radius: 10px 10px 10px 2px;
+  padding: 9px 11px; color: #e9edef; line-height: 1.5;
+  border-left: 3px solid var(--warn);
+  display: flex; flex-direction: column; gap: 3px;
+  max-width: 100%; animation: slideIn 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+.wa-bubble.lvl-critical { border-left-color: var(--bad); background: #231d22; }
+.wa-bubble.idle { border-left-color: var(--ok); }
+.wa-bubble-title { font-weight: 700; font-size: 12px; margin-bottom: 3px; }
+.wa-row { font-size: 11.5px; color: #c9d3d9; }
+.wa-row b { color: #e9edef; font-weight: 600; }
+.wa-time { font-size: 9.5px; color: #8696a0; text-align: right; margin-top: 4px; }
+.wa-note { font-size: 10.5px; color: #8696a0; font-style: italic; text-align: center; padding: 8px 0; }
+.wa-input-bar {
+  display: flex; justify-content: space-between; align-items: center;
+  background: #202c33; padding: 9px 13px; color: #8696a0; font-size: 11px;
+}
+.wa-send { color: #25d366; font-size: 14px; }
+
+/* ============ ALERT BANNER ============ */
+.alert-banner {
+  display: flex; align-items: center; gap: 14px;
+  border-radius: var(--radius); padding: 12px 16px; margin-bottom: 14px;
+  animation: bannerIn 0.45s ease;
+  backdrop-filter: blur(16px); position: relative; overflow: hidden;
+}
+.alert-banner::before { content: ''; position: absolute; inset: 0; background: var(--glass-shine); pointer-events: none; }
+.alert-banner > * { position: relative; z-index: 1; }
+@keyframes bannerIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: none; } }
+.alert-banner.warning {
+  background: linear-gradient(90deg, rgba(251,191,36,0.15), rgba(251,191,36,0.04));
+  border: 1px solid rgba(251,191,36,0.5); box-shadow: 0 0 20px rgba(251,191,36,0.12);
+}
+.alert-banner.critical {
+  background: linear-gradient(90deg, rgba(248,113,113,0.18), rgba(248,113,113,0.04));
+  border: 1px solid rgba(248,113,113,0.55); box-shadow: 0 0 20px rgba(248,113,113,0.15);
+}
+.banner-icon { font-size: 26px; animation: bannerPulse 1s ease-in-out infinite; flex: none; }
+@keyframes bannerPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.15); } }
+.banner-main { flex: 1; min-width: 0; }
+.banner-title { font-weight: 700; letter-spacing: 1.4px; font-size: 14px; }
+.alert-banner.warning .banner-title { color: #ffe8b8; }
+.alert-banner.critical .banner-title { color: #ffc9c9; text-shadow: 0 0 6px var(--bad-glow); }
+.banner-msg { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.banner-meta { display: flex; gap: 16px; align-items: center; font-size: 12px; color: var(--muted); flex-wrap: wrap; }
+.banner-meta b { color: var(--text); }
+.banner-reco { color: #bdf5dd; text-shadow: 0 0 4px var(--ok-glow); }
+.banner-x {
+  background: none; border: none; color: var(--faint); font-size: 15px; cursor: pointer; flex: none;
+  transition: color 0.2s;
+}
+.banner-x:hover { color: var(--text); }
+
+/* ============ TOASTS ============ */
+.toast-stack {
+  position: fixed; top: 74px; right: 18px; z-index: 100;
+  display: flex; flex-direction: column; gap: 10px; width: 340px; max-width: calc(100vw - 36px);
+}
+.toast {
+  display: flex; gap: 11px; align-items: flex-start;
+  background: linear-gradient(160deg, rgba(16, 28, 52, 0.95), rgba(8, 14, 28, 0.95));
+  border: 1px solid var(--border-strong); border-left: 4px solid var(--warn);
+  border-radius: 14px; padding: 13px 14px; box-shadow: var(--shadow-lg);
+  animation: toastIn 0.35s ease; backdrop-filter: blur(20px);
+  position: relative; overflow: hidden;
+}
+.toast::before { content: ''; position: absolute; inset: 0; background: var(--glass-shine); pointer-events: none; }
+.toast > * { position: relative; z-index: 1; }
+.toast.lvl-critical { border-left-color: var(--bad); box-shadow: var(--shadow-lg), 0 0 20px rgba(248,113,113,0.12); }
+.toast.lvl-info { border-left-color: var(--ok); box-shadow: var(--shadow-lg), 0 0 16px rgba(52,211,153,0.1); }
+.toast.out { animation: toastOut 0.4s ease forwards; }
+@keyframes toastIn { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: none; } }
+@keyframes toastOut { to { opacity: 0; transform: translateX(40px); } }
+.toast-icon { font-size: 20px; flex: none; }
+.toast-title { font-weight: 700; font-size: 12.5px; letter-spacing: 1px; margin-bottom: 3px; }
+.toast.lvl-critical .toast-title { color: #ffc9c9; }
+.toast.lvl-warning .toast-title, .toast .toast-title { color: #ffe8b8; }
+.toast.lvl-info .toast-title { color: #bdf5dd; }
+.toast-msg { font-size: 11.5px; color: var(--muted); line-height: 1.45; }
+.toast-meta { display: flex; flex-wrap: wrap; gap: 3px 12px; font-size: 10.5px; color: var(--faint); margin-top: 5px; }
+.toast-meta b { color: var(--text); }
+.toast-close { background: none; border: none; color: var(--faint); cursor: pointer; font-size: 12px; margin-left: auto; flex: none; transition: color 0.2s; }
+.toast-close:hover { color: var(--text); }
+
+/* ============ TRANSITION TOAST ============ */
+.transition-toast {
+  position: fixed; top: 84px; left: 50%; transform: translateX(-50%);
+  z-index: 110; background: rgba(10, 18, 36, 0.92); border: 1px solid rgba(34,211,238,0.45);
+  border-radius: 24px; padding: 10px 24px; font-size: 12.5px; color: var(--text);
+  letter-spacing: 0.6px;
+  box-shadow: 0 0 30px rgba(34, 211, 238, 0.2), 0 8px 30px rgba(0,0,0,0.4);
+  backdrop-filter: blur(16px);
+  opacity: 0; transition: opacity 0.35s ease, transform 0.35s ease;
+  pointer-events: none; white-space: nowrap;
+}
+.transition-toast.show { opacity: 1; transform: translateX(-50%) translateY(4px); }
+.transition-toast b { color: #7dd3fc; text-shadow: 0 0 6px var(--cyan-glow); }
+.hidden { display: none !important; }
+
+/* ============ FOOTER ============ */
+.app-footer {
+  display: flex; justify-content: space-between; gap: 10px;
+  margin-top: 20px; padding: 12px 6px;
+  font-size: 10.5px; color: var(--faint); letter-spacing: 0.6px;
+  border-top: 1px solid var(--glass-border);
+}
+
+/* ============ AUTH GATE ============ */
+.auth-gate {
+  position: fixed; inset: 0; z-index: 200;
+  background: rgba(3, 6, 14, 0.92);
+  display: flex; align-items: center; justify-content: center;
+  backdrop-filter: blur(12px);
+  animation: fadeIn 0.4s ease;
+}
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+.auth-gate-card {
+  background: linear-gradient(165deg, rgba(14, 24, 50, 0.92), rgba(6, 12, 26, 0.9));
+  border: 1px solid rgba(80, 140, 220, 0.2);
+  border-radius: 22px; padding: 40px 36px;
+  text-align: center; max-width: 380px; width: 90%;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6), 0 0 40px rgba(34,211,238,0.06);
+  backdrop-filter: blur(24px);
+  position: relative; overflow: hidden;
+}
+.auth-gate-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.04) 0%, transparent 50%, rgba(255,255,255,0.02) 100%);
+  pointer-events: none;
+}
+.auth-gate-icon { font-size: 48px; margin-bottom: 16px; filter: drop-shadow(0 0 14px rgba(34,211,238,0.5)); animation: floaty 4s ease-in-out infinite; }
+.auth-gate-title { font-size: 20px; font-weight: 700; letter-spacing: 2px; margin-bottom: 10px; }
+.auth-gate-msg { font-size: 13px; color: var(--muted); line-height: 1.6; margin-bottom: 20px; position: relative; }
+.auth-gate-btn {
+  display: inline-block; padding: 12px 28px;
+  background: linear-gradient(135deg, rgba(34, 211, 238, 0.22), rgba(34, 211, 238, 0.06));
+  border: 1px solid rgba(34, 211, 238, 0.45); border-radius: 14px;
+  color: #bdf2ff; font-family: var(--font); font-size: 13px; font-weight: 700;
+  letter-spacing: 1.5px; text-decoration: none; cursor: pointer;
+  transition: all 0.25s; position: relative; overflow: hidden;
+}
+.auth-gate-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.06), transparent);
+  pointer-events: none;
+}
+.auth-gate-btn:hover { box-shadow: 0 0 30px rgba(34, 211, 238, 0.25); transform: translateY(-1px); }
+
+/* ============ USER INFO ============ */
+.user-info {
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 14px; border-radius: 20px;
+  background: rgba(20, 34, 60, 0.45); border: 1px solid var(--glass-border);
+  font-size: 11px; backdrop-filter: blur(10px);
+}
+.user-avatar { font-size: 14px; }
+.user-name { color: var(--text); font-weight: 600; letter-spacing: 0.5px; }
+.user-role {
+  font-family: var(--mono); font-size: 9px; letter-spacing: 1px;
+  color: var(--cyan); background: rgba(34, 211, 238, 0.08);
+  padding: 2px 8px; border-radius: 10px; border: 1px solid rgba(34, 211, 238, 0.25);
+  text-transform: uppercase; text-shadow: 0 0 4px var(--cyan-glow);
+}
+
+/* ============ MAP ============ */
+.map-panel { position: relative; }
+.map-container { margin-top: 8px; }
+.map-toggle-btn {
+  width: 28px; height: 28px; border-radius: 8px;
+  background: rgba(18, 30, 55, 0.6); border: 1px solid var(--glass-border);
+  color: var(--muted); font-size: 12px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s; backdrop-filter: blur(8px);
+}
+.map-toggle-btn:hover { border-color: var(--glass-border-hover); color: var(--text); }
+.map-legend {
+  display: flex; gap: 16px; margin-top: 8px; padding: 8px 0;
+  justify-content: center; flex-wrap: wrap;
+}
+.legend-item {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 10.5px; color: var(--faint); letter-spacing: 0.5px;
+}
+.legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+/* Leaflet overrides */
+.leaflet-container { background: #060d1c !important; border-radius: 12px; }
+.leaflet-control-zoom { border: 1px solid var(--glass-border) !important; border-radius: 10px !important; overflow: hidden; }
+.leaflet-control-zoom a {
+  background: rgba(10, 18, 36, 0.88) !important;
+  color: var(--muted) !important; border-color: var(--glass-border) !important;
+  backdrop-filter: blur(8px);
+}
+.leaflet-control-zoom a:hover { color: var(--text) !important; background: rgba(16, 28, 50, 0.9) !important; }
+.leaflet-control-attribution { background: rgba(6, 12, 26, 0.7) !important; color: var(--faint) !important; font-size: 9px !important; }
+.leaflet-control-attribution a { color: var(--faint) !important; }
+
+/* Truck marker */
+.truck-marker { background: none !important; border: none !important; }
+.marker-inner {
+  display: flex; flex-direction: column; align-items: center;
+  cursor: pointer; transition: transform 0.2s;
+}
+.marker-inner:hover { transform: scale(1.12); }
+.marker-inner.marker-active { transform: scale(1.15); }
+.marker-emoji { font-size: 22px; filter: drop-shadow(0 2px 8px rgba(0,0,0,0.6)); }
+.marker-dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.85);
+  margin-bottom: -4px; position: relative; z-index: 2;
+  box-shadow: 0 0 8px var(--cyan-glow);
+}
+.marker-label {
+  font-size: 9px; font-weight: 700; letter-spacing: 0.8px;
+  color: #fff; background: rgba(8, 14, 30, 0.88);
+  padding: 2px 6px; border-radius: 6px; white-space: nowrap;
+  border: 1px solid rgba(80,140,220,0.2); backdrop-filter: blur(8px);
+}
+
+/* Popup styling */
+.leaflet-popup-content-wrapper {
+  background: rgba(12, 22, 44, 0.95) !important;
+  border: 1px solid rgba(80, 140, 220, 0.25) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.55), 0 0 16px rgba(34,211,238,0.08) !important;
+  padding: 0 !important; backdrop-filter: blur(16px);
+}
+.leaflet-popup-tip { background: rgba(12, 22, 44, 0.95) !important; border: 1px solid rgba(80,140,220,0.25) !important; }
+.leaflet-popup-close-button { color: var(--faint) !important; font-size: 18px !important; }
+.leaflet-popup-close-button:hover { color: var(--text) !important; }
+
+.popup-content { padding: 14px 16px; min-width: 200px; }
+.popup-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.popup-icon { font-size: 24px; filter: drop-shadow(0 0 8px rgba(34,211,238,0.4)); }
+.popup-name { font-weight: 700; font-size: 14px; letter-spacing: 0.5px; }
+.popup-plate { font-size: 10px; color: var(--faint); letter-spacing: 1px; }
+.popup-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+.popup-stat { display: flex; flex-direction: column; gap: 2px; }
+.popup-stat-label { font-size: 8px; letter-spacing: 1.5px; color: var(--faint); text-transform: uppercase; }
+.popup-stat-val { font-family: var(--mono); font-size: 13px; font-weight: 600; color: var(--text); }
+.popup-scenario {
+  font-size: 10px; color: var(--faint); letter-spacing: 0.5px;
+  padding-top: 8px; border-top: 1px dashed var(--glass-border);
+}
+
+/* ============ ANALYSIS DASHBOARD ============ */
+.analysis-section { margin-top: 14px; }
+.analysis-section-title {
+  font-size: 9.5px; letter-spacing: 2.2px; color: var(--faint);
+  font-weight: 600; margin-bottom: 10px;
+}
+.fleet-summary-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+}
+.summary-card {
+  background: rgba(10, 20, 40, 0.55); border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm); padding: 10px 8px;
+  text-align: center; transition: all 0.25s;
+  backdrop-filter: blur(10px); position: relative; overflow: hidden;
+}
+.summary-card::before { content: ''; position: absolute; inset: 0; background: var(--glass-shine); pointer-events: none; }
+.summary-card:hover { border-color: var(--glass-border-hover); transform: translateY(-1px); }
+.summary-card > * { position: relative; z-index: 1; }
+.summary-icon { font-size: 18px; margin-bottom: 4px; }
+.summary-val { font-family: var(--mono); font-size: 18px; font-weight: 700; color: var(--text); }
+.summary-label { font-size: 9px; color: var(--faint); letter-spacing: 0.8px; margin-top: 2px; }
+
+.table-wrap { overflow-x: auto; }
+.analysis-table {
+  width: 100%; border-collapse: collapse; font-size: 11px;
+}
+.analysis-table th {
+  text-align: left; padding: 7px 8px; font-size: 9px;
+  letter-spacing: 1.5px; color: var(--faint); font-weight: 600;
+  border-bottom: 1px solid var(--glass-border);
+}
+.analysis-table td {
+  padding: 8px 8px; border-bottom: 1px solid rgba(80,140,220,0.06);
+  color: var(--muted);
+}
+.analysis-table tr.row-active td {
+  background: rgba(34, 211, 238, 0.05);
+}
+.table-vehicle { display: block; font-weight: 600; color: var(--text); }
+.table-plate { display: block; font-size: 9px; color: var(--faint); letter-spacing: 0.8px; }
+.band-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 10px; border-radius: 12px; font-size: 10px; font-weight: 600;
+  letter-spacing: 0.5px;
+}
+.band-badge.band-healthy { color: var(--ok); background: var(--ok-dim); box-shadow: 0 0 6px rgba(52,211,153,0.15); }
+.band-badge.band-attention { color: var(--warn); background: var(--warn-dim); }
+.band-badge.band-critical { color: var(--bad); background: var(--bad-dim); box-shadow: 0 0 6px rgba(248,113,113,0.15); }
+
+.fuel-chart-wrap { margin-top: 4px; }
+.fuel-chart-wrap canvas { width: 100%; display: block; border-radius: 8px; }
+.fuel-stats {
+  display: flex; gap: 12px; margin-top: 8px; flex-wrap: wrap; justify-content: center;
+}
+.fuel-stat-item {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11px; padding: 4px 10px; border-radius: 8px;
+  background: rgba(10, 20, 40, 0.5); border: 1px solid var(--glass-border);
+}
+.fuel-stat-name { color: var(--faint); }
+.fuel-stat-val { font-weight: 600; }
+
+.maint-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px;
+}
+.maint-card {
+  background: rgba(10, 20, 40, 0.55); border: 1px solid var(--glass-border);
+  border-left: 3px solid var(--ok);
+  border-radius: var(--radius-sm); padding: 10px 12px;
+  transition: all 0.25s; backdrop-filter: blur(10px);
+}
+.maint-card:hover { border-color: var(--glass-border-hover); transform: translateY(-1px); }
+.maint-vehicle { font-size: 11px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+.maint-prediction { display: flex; align-items: baseline; gap: 6px; }
+.maint-days { font-size: 18px; font-weight: 700; }
+.maint-urgency { font-size: 9px; letter-spacing: 1.2px; font-weight: 600; }
+
+.health-dist-wrap { margin-top: 4px; }
+.health-dist-wrap canvas { width: 100%; display: block; border-radius: 8px; }
+
+.export-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 11px 24px; border-radius: var(--radius-sm);
+  background: linear-gradient(135deg, rgba(167, 139, 250, 0.18), rgba(167, 139, 250, 0.05));
+  border: 1px solid rgba(167, 139, 250, 0.4);
+  color: #c9b8ff; font-family: var(--font); font-size: 12px; font-weight: 600;
+  letter-spacing: 1px; cursor: pointer; transition: all 0.25s;
+  position: relative; overflow: hidden;
+}
+.export-btn::before { content: ''; position: absolute; inset: 0; background: var(--glass-shine); pointer-events: none; }
+.export-btn:hover {
+  box-shadow: 0 0 24px rgba(167, 139, 250, 0.2);
+  transform: translateY(-1px);
+}
+
+/* ============ FLOATING ANIMATION ============ */
+@keyframes floatUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.col-left .panel { animation: floatUp 0.5s ease backwards; }
+.col-left .panel:nth-child(1) { animation-delay: 0.05s; }
+.col-left .panel:nth-child(2) { animation-delay: 0.1s; }
+.col-left .panel:nth-child(3) { animation-delay: 0.15s; }
+.col-center .panel { animation: floatUp 0.5s ease backwards; }
+.col-center .panel:nth-child(1) { animation-delay: 0.1s; }
+.col-center .panel:nth-child(2) { animation-delay: 0.15s; }
+.col-center .panel:nth-child(3) { animation-delay: 0.2s; }
+.col-right .panel { animation: floatUp 0.5s ease backwards; }
+.col-right .panel:nth-child(1) { animation-delay: 0.15s; }
+.col-right .panel:nth-child(2) { animation-delay: 0.2s; }
+.col-right .panel:nth-child(3) { animation-delay: 0.25s; }
+.col-right .panel:nth-child(4) { animation-delay: 0.3s; }
+
+/* ============ RESPONSIVE ============ */
+@media (max-width: 1240px) {
+  .main-grid { grid-template-columns: 280px minmax(0, 1fr); }
+  .col-right { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr 1fr; align-items: start; }
+}
+@media (max-width: 900px) {
+  .main-grid { grid-template-columns: 1fr; }
+  .col-right { grid-template-columns: 1fr; }
+  .status-row { grid-template-columns: 1fr; }
+  .health-main { justify-content: center; }
+  .brand-sub { display: none; }
+  .header-center .hdr-status .hdr-text { font-size: 10px; }
+}
+@media (max-width: 640px) {
+  #app { padding: 10px; }
+  .app-header { flex-wrap: wrap; gap: 8px; }
+  .header-right { margin-left: auto; }
+  .metric-grid { grid-template-columns: repeat(2, 1fr); }
+  .chart-grid { grid-template-columns: 1fr; }
+  .health-main { flex-direction: column; }
+  .ai-body { flex-direction: column; }
+  .ai-verdict { width: 100%; }
+  .toast-stack { width: calc(100vw - 24px); right: 12px; }
+  .scenario-grid { grid-template-columns: 1fr 1fr; }
+  .banner-meta { gap: 6px 12px; }
+  .transition-toast { white-space: normal; width: max-content; max-width: 92vw; text-align: center; }
+  .gauge { padding: 3px 6px; }
+  .gauge-val { font-size: 10.5px; }
+  .gauge-label { font-size: 6.5px; }
+}
+
+</style>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚛</text></svg>" />
+</head>
+<body>
+  <!-- Ambient orbs -->
+  <div class="bg-orb o1"></div>
+  <div class="bg-orb o2"></div>
+  <div class="bg-orb o3"></div>
+
+  <!-- Auth gate overlay -->
+  <div id="auth-gate" class="auth-gate hidden">
+    <div class="auth-gate-card">
+      <div class="auth-gate-icon">🔒</div>
+      <div class="auth-gate-title">Access Restricted</div>
+      <div class="auth-gate-msg">Please log in as an admin to access the dashboard.</div>
+      <a href="login.html" class="auth-gate-btn">Go to Login</a>
+      <a href="home.html" style="display:block;margin-top:12px;font-size:11px;color:var(--faint);text-decoration:none;letter-spacing:0.5px;">← Back to Home</a>
+    </div>
+  </div>
+
+  <div id="app">
+    <!-- ============ HEADER ============ -->
+    <header class="app-header">
+      <div class="brand">
+        <a href="home.html" style="text-decoration:none;display:flex;align-items:center;gap:12px;">
+          <div class="brand-logo">🚛</div>
+          <div class="brand-text">
+            <span class="brand-name">TRUCKPULSE</span>
+            <span class="brand-sub">AI VEHICLE TELEMETRY</span>
+          </div>
+        </a>
+      </div>
+
+      <div class="header-center" id="vehicle-status-chip"></div>
+
+      <div class="header-right">
+        <div class="user-info" id="user-info">
+          <span class="user-avatar">👤</span>
+          <span class="user-name" id="user-name">Admin</span>
+          <span class="user-role" id="user-role">admin</span>
+        </div>
+        <button class="icon-btn" id="sound-toggle" title="Toggle alert sound">
+          <span class="icon-sound-off">🔇</span>
+          <span class="sound-label">SOUND</span>
+        </button>
+        <button class="icon-btn" id="logout-btn" title="Logout" style="color:var(--bad);border-color:rgba(248,113,113,0.3);">
+          <span>🚪</span>
+          <span class="sound-label">LOGOUT</span>
+        </button>
+        <div class="clock" id="clock">--:--:--</div>
+      </div>
+    </header>
+
+    <!-- ============ DASHBOARD ALERT BANNER ============ -->
+    <div id="alert-banner" class="alert-banner hidden"></div>
+
+    <!-- ============ MAP (FULL WIDTH) ============ -->
+    <div id="fleet-map-section" style="margin-bottom: 14px;"></div>
+
+    <!-- ============ MAIN GRID ============ -->
+    <main class="main-grid">
+
+      <!-- LEFT COLUMN -->
+      <section class="col col-left">
+        <div id="fleet-panel"></div>
+        <div id="sim-controls"></div>
+        <div id="alert-center"></div>
+      </section>
+
+      <!-- CENTER COLUMN -->
+      <section class="col col-center">
+        <div class="status-row">
+          <div id="health-score"></div>
+          <div id="vehicle-visual"></div>
+        </div>
+        <div id="telemetry"></div>
+        <div id="charts"></div>
+      </section>
+
+      <!-- RIGHT COLUMN -->
+      <section class="col col-right">
+        <div id="ai-analysis"></div>
+        <div id="analysis-dashboard"></div>
+        <div id="event-timeline"></div>
+        <div id="whatsapp-preview"></div>
+      </section>
+    </main>
+
+    <footer class="app-footer">
+      <span>TruckPulse · Simulated OBD-II pipeline — Vehicle → Data → AI Health → Risk → Alert → Action</span>
+      <span id="footer-clock" class="mono"></span>
+    </footer>
+  </div>
+
+  <!-- Toast stack -->
+  <div id="toast-stack" class="toast-stack" aria-live="polite"></div>
+
+  <!-- Transition overlay -->
+  <div id="transition-toast" class="transition-toast hidden"></div>
+
+  <script>
+(() => {
+  var __getOwnPropNames = Object.getOwnPropertyNames;
+  var __esm = (fn, res, err) => function __init() {
+    if (err) throw err[0];
+    try {
+      return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
+    } catch (e) {
+      throw err = [e], e;
+    }
+  };
+  var __commonJS = (cb, mod) => function __require() {
+    try {
+      return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
+    } catch (e) {
+      throw mod = 0, e;
+    }
+  };
+
+  // js/config.js
+  function vibrationLevel(v) {
+    const band = VIBRATION_BANDS.find((b) => v < b.max) || VIBRATION_BANDS[3];
+    return band.label.toUpperCase();
+  }
+  var TICK_MS, HISTORY_LIMIT, TREND_WINDOW, HEALTH_THRESHOLDS, HEALTH_WEIGHTS, SCENARIOS, PARAM_RATES, PARAM_TAUS, TREND, VIBRATION_BANDS, CURVES, CONFIDENCE, SUSTAINED, CATASTROPHE, FLEET, PLACEHOLDER_REG_NUMBER;
+  var init_config = __esm({
+    "js/config.js"() {
+      TICK_MS = 250;
+      HISTORY_LIMIT = 100;
+      TREND_WINDOW = 24;
+      HEALTH_THRESHOLDS = {
+        healthy: 90,
+        // >= healthy  -> HEALTHY / LOW risk
+        attention: 60,
+        // >= attention-> ATTENTION / MEDIUM risk
+        critical: 0
+        // below       -> CRITICAL / HIGH risk
+      };
+      HEALTH_WEIGHTS = {
+        temperature: 0.26,
+        voltage: 0.2,
+        rpm: 0.15,
+        vibration: 0.19,
+        engineLoad: 0.12,
+        speed: 0.08
+      };
+      SCENARIOS = {
+        NORMAL: {
+          label: "Normal",
+          tagline: "Steady highway operation",
+          targets: {
+            coolantTemp: 89,
+            voltage: 13.8,
+            engineLoad: 52,
+            vibration: 12,
+            fuelEfficiency: 78,
+            rpmBase: 2200,
+            rpmRange: 220,
+            speedBase: 55,
+            speedRange: 26,
+            instability: 0.14,
+            vibSpike: 0
+          }
+        },
+        OVERHEATING: {
+          label: "Overheating",
+          tagline: "Coolant temperature climbing",
+          targets: {
+            coolantTemp: 112,
+            voltage: 13.2,
+            engineLoad: 74,
+            vibration: 35,
+            fuelEfficiency: 58,
+            rpmBase: 2320,
+            rpmRange: 300,
+            speedBase: 46,
+            speedRange: 20,
+            instability: 0.5,
+            vibSpike: 5
+          }
+        },
+        LOW_VOLTAGE: {
+          label: "Low Voltage",
+          tagline: "Charging system degrading",
+          targets: {
+            coolantTemp: 88,
+            voltage: 12.2,
+            engineLoad: 50,
+            vibration: 10,
+            fuelEfficiency: 70,
+            rpmBase: 2120,
+            rpmRange: 200,
+            speedBase: 50,
+            speedRange: 24,
+            instability: 0.1,
+            vibSpike: 0
+          }
+        },
+        HIGH_VIBRATION: {
+          label: "High Vibration",
+          tagline: "Mechanical vibration rising",
+          targets: {
+            coolantTemp: 90,
+            voltage: 13.7,
+            engineLoad: 58,
+            vibration: 84,
+            fuelEfficiency: 68,
+            rpmBase: 2220,
+            rpmRange: 330,
+            speedBase: 52,
+            speedRange: 22,
+            instability: 0.42,
+            vibSpike: 15
+          }
+        },
+        ENGINE_INSTABILITY: {
+          label: "Engine Instability",
+          tagline: "RPM / load fluctuations",
+          targets: {
+            coolantTemp: 91,
+            voltage: 13.6,
+            engineLoad: 64,
+            vibration: 55,
+            fuelEfficiency: 58,
+            rpmBase: 2200,
+            rpmRange: 720,
+            speedBase: 50,
+            speedRange: 16,
+            instability: 0.85,
+            vibSpike: 8
+          }
+        },
+        CRITICAL_FAILURE: {
+          label: "Critical Failure",
+          tagline: "Multi-parameter failure",
+          targets: {
+            coolantTemp: 109,
+            voltage: 12.05,
+            engineLoad: 87,
+            vibration: 89,
+            fuelEfficiency: 34,
+            rpmBase: 2300,
+            rpmRange: 820,
+            speedBase: 45,
+            speedRange: 12,
+            instability: 0.9,
+            vibSpike: 16
+          }
+        },
+        RECOVERY: {
+          label: "Recovery",
+          tagline: "Post-maintenance return to normal",
+          targets: {
+            coolantTemp: 89,
+            voltage: 13.8,
+            engineLoad: 50,
+            vibration: 11,
+            fuelEfficiency: 76,
+            rpmBase: 2180,
+            rpmRange: 210,
+            speedBase: 54,
+            speedRange: 24,
+            instability: 0.12,
+            vibSpike: 0
+          }
+        }
+      };
+      PARAM_RATES = {
+        coolantTemp: 0.55,
+        // °C / s
+        voltage: 0.045,
+        // V / s
+        engineLoad: 0.9,
+        // % / s
+        vibration: 2.2,
+        // 0-100 / s
+        fuelEfficiency: 0.5
+        // % / s
+      };
+      PARAM_TAUS = {
+        rpm: 2600,
+        speed: 6e3
+      };
+      TREND = {
+        temp: { slopePerPoint: 0.1, minTotalRise: 1.3 },
+        // °C
+        voltage: { slopePerPoint: 8e-3, minTotalFall: 0.12 },
+        // V
+        vibration: { slopePerPoint: 0.35, minTotalRise: 4.5, minLevel: 25 },
+        // 0-100
+        rpmStd: { unstable: 85, heavy: 240 },
+        // RPM
+        loadInstability: { unstable: 8 },
+        // %
+        minPoints: 8
+      };
+      VIBRATION_BANDS = [
+        { max: 26, label: "Low", icon: "\u2581" },
+        { max: 50, label: "Medium", icon: "\u2583" },
+        { max: 74, label: "High", icon: "\u2585" },
+        { max: 101, label: "Critical", icon: "\u2587" }
+      ];
+      CURVES = {
+        temperature: [[55, 60], [70, 82], [80, 95], [88, 100], [95, 96], [98, 84], [101, 64], [104, 44], [107, 26], [110, 12], [116, 4]],
+        voltage: [[10.5, 5], [11.5, 20], [12.2, 42], [12.6, 60], [13, 80], [13.4, 94], [13.8, 100], [14.4, 97], [15, 78], [15.6, 55]],
+        rpm: [[700, 35], [1200, 75], [1500, 92], [1900, 100], [2600, 96], [3e3, 68], [3400, 42], [4e3, 18]],
+        vibration: [[0, 100], [20, 92], [40, 74], [60, 50], [80, 28], [100, 6]],
+        engineLoad: [[0, 58], [20, 90], [40, 100], [65, 98], [80, 84], [90, 58], [100, 28]],
+        speed: [[0, 65], [18, 90], [40, 100], [90, 97], [115, 78], [140, 45]]
+      };
+      CONFIDENCE = {
+        base: 90,
+        perPoint: 0.35,
+        maxPointsBonus: 6,
+        criticalBonus: 3,
+        max: 97,
+        min: 70
+      };
+      SUSTAINED = {
+        tempOver: 100,
+        tempPenaltyPerSec: 0.8,
+        tempPenaltyCap: 22,
+        voltBelow: 12.7,
+        voltPenaltyPerSec: 0.8,
+        voltPenaltyCap: 18,
+        vibOver: 55,
+        vibPenaltyPerSec: 0.8,
+        vibPenaltyCap: 18,
+        window: 60
+        // history points examined
+      };
+      CATASTROPHE = [
+        { cond: (s) => s.coolantTemp > 101, factor: (s) => 1 - (s.coolantTemp - 101) * 0.07, floor: 0.62 },
+        { cond: (s) => s.voltage < 12.3, factor: (s) => 1 - (12.3 - s.voltage) * 0.15, floor: 0.8 },
+        { cond: (s) => s.vibration > 78, factor: (s) => 1 - (s.vibration - 78) * 0.03, floor: 0.8 },
+        { cond: (s) => s.rpm > 3200, factor: (s) => 1 - (s.rpm - 3200) * 2e-3, floor: 0.7 }
+      ];
+      FLEET = [
+        { id: "truck-01", name: "Chennai Express", plate: "TN 34 AB 1234", scenario: "NORMAL", route: "Chennai \u2192 Bangalore" },
+        { id: "truck-02", name: "Bangalore Star", plate: "TN 78 CD 2091", scenario: "NORMAL", route: "Bangalore \u2192 Mysore" },
+        { id: "truck-03", name: "Mumbai Runner", plate: "MH 12 EF 8832", scenario: "LOW_VOLTAGE", route: "Mumbai \u2192 Pune" },
+        { id: "truck-04", name: "Delhi Heavy", plate: "DL 55 GH 4471", scenario: "CRITICAL_FAILURE", route: "Delhi \u2192 Jaipur" },
+        { id: "truck-05", name: "Kolkata Cruiser", plate: "WB 90 JK 6650", scenario: "NORMAL", route: "Kolkata \u2192 Bhubaneswar" },
+        { id: "truck-06", name: "Hyderabad Hauler", plate: "TS 22 KL 7788", scenario: "HIGH_VIBRATION", route: "Hyderabad \u2192 Vijayawada" }
+      ];
+      PLACEHOLDER_REG_NUMBER = "TN 42 TR 2026";
+    }
+  });
+
+  // js/utils/math.js
+  function randn() {
+    let u = 0, v = 0;
+    while (u === 0) u = Math.random();
+    while (v === 0) v = Math.random();
+    return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+  }
+  function piecewise(points, x) {
+    if (points.length === 0) return 0;
+    if (x <= points[0][0]) return points[0][1];
+    if (x >= points[points.length - 1][0]) return points[points.length - 1][1];
+    for (let i = 1; i < points.length; i++) {
+      if (x <= points[i][0]) {
+        const [x0, y0] = points[i - 1];
+        const [x1, y1] = points[i];
+        const t = (x - x0) / (x1 - x0);
+        return y0 + (y1 - y0) * t;
+      }
+    }
+    return points[points.length - 1][1];
+  }
+  function linearRegression(ys) {
+    const n = ys.length;
+    if (n < 2) return { slope: 0, intercept: 0, meanY: ys[0] || 0 };
+    let sx = 0, sy = 0, sxx = 0, sxy = 0;
+    for (let i = 0; i < n; i++) {
+      sx += i;
+      sy += ys[i];
+      sxx += i * i;
+      sxy += i * ys[i];
+    }
+    const denom = n * sxx - sx * sx || 1;
+    const slope = (n * sxy - sx * sy) / denom;
+    const intercept = (sy - slope * sx) / n;
+    return { slope, intercept, meanY: sy / n };
+  }
+  function stddev(xs) {
+    if (xs.length < 2) return 0;
+    const mean = xs.reduce((a, b) => a + b, 0) / xs.length;
+    const sq = xs.reduce((a, b) => a + (b - mean) * (b - mean), 0);
+    return Math.sqrt(sq / xs.length);
+  }
+  function fmtTime(date = /* @__PURE__ */ new Date()) {
+    const p = (n) => String(n).padStart(2, "0");
+    return `${p(date.getHours())}:${p(date.getMinutes())}:${p(date.getSeconds())}`;
+  }
+  var clamp, easeToward, rand, round1, round2;
+  var init_math = __esm({
+    "js/utils/math.js"() {
+      clamp = (v, min, max) => v < min ? min : v > max ? max : v;
+      easeToward = (current, target, factor) => current + (target - current) * factor;
+      rand = (min, max) => min + Math.random() * (max - min);
+      round1 = (v) => Math.round(v * 10) / 10;
+      round2 = (v) => Math.round(v * 100) / 100;
+    }
+  });
+
+  // js/simulation/vehicleSimulation.js
+  var VehicleSimulation, tickMsAtSpeed;
+  var init_vehicleSimulation = __esm({
+    "js/simulation/vehicleSimulation.js"() {
+      init_config();
+      init_math();
+      VehicleSimulation = class {
+        /**
+         * @param {string} scenarioKey initial scenario
+         * @param {object} opts { seedJitter: bool }
+         */
+        constructor(scenarioKey = "NORMAL", opts = {}) {
+          this.scenarioKey = scenarioKey;
+          this.history = [];
+          this.timeMs = 0;
+          this.phase = rand(0, Math.PI * 2);
+          this.vibPhase = rand(0, Math.PI * 2);
+          this.spike = 0;
+          this.spikeTimer = 0;
+          const t = this.targets();
+          this.state = {
+            rpm: t.rpmBase,
+            coolantTemp: t.coolantTemp,
+            voltage: t.voltage,
+            speed: t.speedBase,
+            engineLoad: t.engineLoad,
+            vibration: t.vibration,
+            fuelEfficiency: t.fuelEfficiency
+          };
+          if (opts.seedJitter) {
+            this.state.coolantTemp += rand(-1.5, 1.5);
+            this.state.voltage += rand(-0.05, 0.05);
+            this.state.rpm += rand(-60, 60);
+            this.state.vibration += rand(-4, 6);
+          }
+          this.pushHistory();
+        }
+        targets() {
+          return SCENARIOS[this.scenarioKey]?.targets || SCENARIOS.NORMAL.targets;
+        }
+        setScenario(key) {
+          this.scenarioKey = key;
+        }
+        reset(scenarioKey = "NORMAL") {
+          this.scenarioKey = scenarioKey;
+          this.history = [];
+          this.timeMs = 0;
+          this.phase = rand(0, Math.PI * 2);
+          this.spike = 0;
+          this.spikeTimer = 0;
+          const t = this.targets();
+          this.state = {
+            rpm: t.rpmBase,
+            coolantTemp: t.coolantTemp,
+            voltage: t.voltage,
+            speed: t.speedBase,
+            engineLoad: t.engineLoad,
+            vibration: t.vibration,
+            fuelEfficiency: t.fuelEfficiency
+          };
+          this.pushHistory();
+        }
+        /**
+         * Advance the simulation by one tick of `dtMs` sim time.
+         */
+        tick(dtMs) {
+          this.timeMs += dtMs;
+          const t = this.targets();
+          const s = this.state;
+          const dt = dtMs;
+          const exp = (tau) => 1 - Math.exp(-dt / tau);
+          const moveRate = (current, target, rate) => current + clamp(target - current, -rate * (dt / 1e3), rate * (dt / 1e3));
+          this.phase += (0.5 + t.instability * 0.9) * (dt / 1e3) * Math.PI * 2;
+          const oscAmp = t.rpmRange * t.instability * 0.62;
+          const rpmNoise = randn() * (12 + t.instability * 40);
+          s.rpm = clamp(
+            easeToward(s.rpm, t.rpmBase, exp(PARAM_TAUS.rpm)) + Math.sin(this.phase) * oscAmp + rpmNoise,
+            600,
+            4200
+          );
+          s.coolantTemp = clamp(
+            moveRate(s.coolantTemp, t.coolantTemp, PARAM_RATES.coolantTemp) + randn() * 0.08,
+            40,
+            118
+          );
+          s.voltage = clamp(
+            moveRate(s.voltage, t.voltage, PARAM_RATES.voltage) + randn() * 0.012,
+            10.5,
+            15.6
+          );
+          const speedOsc = Math.sin(this.phase * 0.31) * t.speedRange * 0.5;
+          s.speed = clamp(
+            easeToward(s.speed, t.speedBase + speedOsc, exp(PARAM_TAUS.speed)) + randn() * 2.4,
+            0,
+            130
+          );
+          const loadOsc = Math.sin(this.phase * 0.9) * (2 + t.instability * 12);
+          s.engineLoad = clamp(
+            moveRate(s.engineLoad, t.engineLoad, PARAM_RATES.engineLoad) + loadOsc + randn() * 1.2,
+            0,
+            100
+          );
+          this.vibPhase += 0.5 * (dt / 1e3) * Math.PI * 2;
+          const vibMod = Math.sin(this.vibPhase) * (1.2 + t.vibration * 0.015);
+          this.spikeTimer -= dtMs;
+          if (this.spikeTimer <= 0) {
+            this.spike = t.vibSpike > 0 && Math.random() < 0.32 ? rand(t.vibSpike * 0.35, t.vibSpike) : 0;
+            this.spikeTimer = rand(4e3, 9e3);
+          }
+          this.spike = Math.max(0, this.spike - dtMs * 4e-3);
+          s.vibration = clamp(
+            moveRate(s.vibration, t.vibration + vibMod, PARAM_RATES.vibration) + randn() * (0.3 + s.vibration * 0.012) + this.spike,
+            0,
+            100
+          );
+          const fuelTarget = t.fuelEfficiency * (1 - Math.max(0, s.engineLoad - 42) * 8e-3);
+          s.fuelEfficiency = clamp(
+            moveRate(s.fuelEfficiency, fuelTarget, PARAM_RATES.fuelEfficiency) + randn() * 0.8,
+            0,
+            100
+          );
+          this.pushHistory();
+        }
+        pushHistory() {
+          const s = this.state;
+          this.history.push({
+            t: this.timeMs,
+            rpm: s.rpm,
+            coolantTemp: s.coolantTemp,
+            voltage: s.voltage,
+            speed: s.speed,
+            engineLoad: s.engineLoad,
+            vibration: s.vibration,
+            fuelEfficiency: s.fuelEfficiency
+          });
+          if (this.history.length > HISTORY_LIMIT) {
+            this.history.shift();
+          }
+        }
+        // Convenience snapshot for UI
+        snapshot() {
+          return {
+            state: { ...this.state },
+            history: this.history,
+            scenarioKey: this.scenarioKey,
+            timeMs: this.timeMs
+          };
+        }
+      };
+      tickMsAtSpeed = (speed) => TICK_MS * speed;
+    }
+  });
+
+  // js/simulation/trendDetection.js
+  function detectTrends(history) {
+    const N = Math.min(TREND_WINDOW, history.length);
+    const min = TREND.minPoints;
+    const out = {
+      tempRising: { active: false, strength: 0, slope: 0 },
+      voltageFalling: { active: false, strength: 0, slope: 0 },
+      vibrationRising: { active: false, strength: 0, slope: 0 },
+      rpmInstability: { active: false, std: 0, strength: 0 },
+      loadInstability: { active: false, std: 0, strength: 0 },
+      dataPoints: history.length
+    };
+    if (history.length < min || N < min) return out;
+    const slice = history.slice(-N);
+    {
+      const reg = linearRegression(slice.map((p) => p.coolantTemp));
+      const total = reg.slope * (N - 1);
+      if (reg.slope >= TREND.temp.slopePerPoint && total >= TREND.temp.minTotalRise) {
+        out.tempRising = {
+          active: true,
+          slope: reg.slope,
+          strength: clamp01(reg.slope / (TREND.temp.slopePerPoint * 2.2))
+        };
+      }
+    }
+    {
+      const reg = linearRegression(slice.map((p) => p.voltage));
+      const total = reg.slope * (N - 1);
+      if (reg.slope <= -TREND.voltage.slopePerPoint && total <= -TREND.voltage.minTotalFall) {
+        out.voltageFalling = {
+          active: true,
+          slope: reg.slope,
+          strength: clamp01(-reg.slope / (TREND.voltage.slopePerPoint * 2.4))
+        };
+      }
+    }
+    {
+      const reg = linearRegression(slice.map((p) => p.vibration));
+      const total = reg.slope * (N - 1);
+      const mean = slice.reduce((a, p) => a + p.vibration, 0) / slice.length;
+      if (reg.slope >= TREND.vibration.slopePerPoint && total >= TREND.vibration.minTotalRise && mean >= TREND.vibration.minLevel) {
+        out.vibrationRising = {
+          active: true,
+          slope: reg.slope,
+          strength: clamp01(reg.slope / (TREND.vibration.slopePerPoint * 2.2))
+        };
+      }
+    }
+    {
+      const s = stddev(slice.map((p) => p.rpm));
+      out.rpmInstability = {
+        active: s >= TREND.rpmStd.unstable,
+        std: s,
+        strength: clamp01((s - TREND.rpmStd.unstable) / (TREND.rpmStd.heavy - TREND.rpmStd.unstable))
+      };
+    }
+    {
+      const s = stddev(slice.map((p) => p.engineLoad));
+      out.loadInstability = {
+        active: s >= TREND.loadInstability.unstable,
+        std: s,
+        strength: clamp01((s - TREND.loadInstability.unstable) / 14)
+      };
+    }
+    return out;
+  }
+  function clamp01(v) {
+    return v < 0 ? 0 : v > 1 ? 1 : v;
+  }
+  var init_trendDetection = __esm({
+    "js/simulation/trendDetection.js"() {
+      init_config();
+      init_math();
+    }
+  });
+
+  // js/simulation/healthEngine.js
+  function analyzeVehicleHealth(vehicleData) {
+    const { state, history, scenarioKey } = vehicleData;
+    const trends = detectTrends(history);
+    const n = history.length;
+    let tempH = piecewise(CURVES.temperature, state.coolantTemp);
+    let voltH = piecewise(CURVES.voltage, state.voltage);
+    let rpmH = rpmHealth(state, trends);
+    let vibH = piecewise(CURVES.vibration, state.vibration);
+    let loadH = piecewise(CURVES.engineLoad, state.engineLoad);
+    const speedH = piecewise(CURVES.speed, state.speed);
+    if (trends.tempRising.active) {
+      tempH = tempH * (1 - 0.14 * trends.tempRising.strength);
+    }
+    if (trends.voltageFalling.active) {
+      voltH -= 9 * trends.voltageFalling.strength;
+    }
+    if (trends.vibrationRising.active) {
+      vibH -= 8 * trends.vibrationRising.strength;
+    }
+    if (trends.rpmInstability.active) {
+      rpmH -= 10 * trends.rpmInstability.strength;
+    }
+    if (trends.loadInstability.active) {
+      loadH -= 6 * trends.loadInstability.strength;
+    }
+    const sustained = sustainedSeconds(history, SUSTAINED.window);
+    tempH -= clamp(sustained.overheatSec * SUSTAINED.tempPenaltyPerSec, 0, SUSTAINED.tempPenaltyCap);
+    voltH -= clamp(sustained.lowVoltSec * SUSTAINED.voltPenaltyPerSec, 0, SUSTAINED.voltPenaltyCap);
+    vibH -= clamp(sustained.highVibSec * SUSTAINED.vibPenaltyPerSec, 0, SUSTAINED.vibPenaltyCap);
+    tempH = clamp(tempH, 0, 100);
+    voltH = clamp(voltH, 0, 100);
+    rpmH = clamp(rpmH, 0, 100);
+    vibH = clamp(vibH, 0, 100);
+    loadH = clamp(loadH, 0, 100);
+    const weighted = {
+      temperature: tempH,
+      voltage: voltH,
+      rpm: rpmH,
+      vibration: vibH,
+      engineLoad: loadH,
+      speed: speedH
+    };
+    let healthScore = 0;
+    for (const key of Object.keys(HEALTH_WEIGHTS)) {
+      healthScore += HEALTH_WEIGHTS[key] * weighted[key];
+    }
+    let factor = 1;
+    for (const c of CATASTROPHE) {
+      if (c.cond(state)) {
+        const f = Math.max(c.floor, c.factor(state));
+        if (f < factor) factor = f;
+      }
+    }
+    healthScore = clamp(Math.round(healthScore * factor), 0, 100);
+    const band = healthScore >= HEALTH_THRESHOLDS.healthy ? "HEALTHY" : healthScore >= HEALTH_THRESHOLDS.attention ? "ATTENTION" : "CRITICAL";
+    const status = band;
+    const riskLevel = band === "HEALTHY" ? "LOW" : band === "ATTENTION" ? "MEDIUM" : "HIGH";
+    const abnormalCount = (state.coolantTemp > 99 ? 1 : 0) + (state.voltage < 12.8 ? 1 : 0) + (state.vibration > 55 ? 1 : 0) + (trends.rpmInstability.active ? 1 : 0);
+    const rawConf = CONFIDENCE.base + Math.min(CONFIDENCE.maxPointsBonus, n * CONFIDENCE.perPoint) + (band === "CRITICAL" ? CONFIDENCE.criticalBonus : 0) + (abnormalCount >= 3 ? 2 : 0);
+    const confidence = Math.round(clamp(rawConf, CONFIDENCE.min, CONFIDENCE.max));
+    const detectedPatterns = [];
+    const push = (id, label, description, severity) => detectedPatterns.push({ id, label, description, severity });
+    if (trends.tempRising.active) {
+      push(
+        "temp-trend",
+        "Continuous coolant temperature increase",
+        "Coolant temperature is continuously increasing \u2014 potential overheating pattern detected.",
+        band === "CRITICAL" ? "HIGH" : "MEDIUM"
+      );
+    } else if (state.coolantTemp > 100) {
+      push(
+        "temp-high",
+        "High coolant temperature",
+        "Coolant temperature is above normal operating range.",
+        "HIGH"
+      );
+    }
+    if (trends.voltageFalling.active) {
+      push(
+        "voltage-trend",
+        "Abnormal voltage trend",
+        "Voltage is gradually decreasing \u2014 charging system may be degrading.",
+        "MEDIUM"
+      );
+    } else if (state.voltage < 12.7) {
+      push("voltage-low", "Low system voltage", "Electrical system voltage is below normal range.", "MEDIUM");
+    }
+    if (trends.vibrationRising.active || state.vibration > 55) {
+      push(
+        "vibration-pattern",
+        "Potential abnormal vibration pattern",
+        "Vibration levels are abnormal. This may indicate a mechanical issue \u2014 further inspection required.",
+        state.vibration > 74 ? "HIGH" : "MEDIUM"
+      );
+    }
+    if (trends.rpmInstability.active) {
+      push(
+        "rpm-instability",
+        "Engine behaviour unstable",
+        "RPM and engine behaviour are becoming unstable.",
+        trends.rpmInstability.strength > 0.5 ? "HIGH" : "MEDIUM"
+      );
+    }
+    if (abnormalCount >= 3 || band === "CRITICAL" && detectedPatterns.length >= 2) {
+      push(
+        "multi-param",
+        "High-risk abnormal vehicle pattern",
+        "Multiple abnormal vehicle parameters detected simultaneously.",
+        "HIGH"
+      );
+    }
+    const recommendations = [];
+    const add = (r) => !recommendations.includes(r) && recommendations.push(r);
+    if (trends.tempRising.active || state.coolantTemp > 99) add("Inspect cooling system");
+    if (trends.voltageFalling.active || state.voltage < 12.7) add("Inspect battery and charging system");
+    if (trends.vibrationRising.active || state.vibration > 55) add("Inspect mechanical components");
+    if (trends.rpmInstability.active) add("Check engine mounts and fuel supply");
+    if (band === "CRITICAL") add("Stop vehicle when safe and inspect immediately");
+    if (recommendations.length === 0) {
+      add("Continue monitoring");
+      if (n > 40) add("Schedule routine maintenance");
+    }
+    const summary = buildSummary(detectedPatterns, band, scenarioKey);
+    return {
+      healthScore,
+      riskLevel,
+      confidence,
+      status,
+      band,
+      detectedPatterns,
+      recommendations,
+      summary,
+      components: weighted,
+      trends,
+      dataPoints: n
+    };
+  }
+  function rpmHealth(state, trends) {
+    const base = piecewise(CURVES.rpm, state.rpm);
+    const stability = clamp(100 - trends.rpmInstability.std * 0.14, 0, 100);
+    return 0.55 * base + 0.45 * stability;
+  }
+  function sustainedSeconds(history, windowPts) {
+    const slice = history.slice(-windowPts);
+    let overheatSec = 0;
+    let lowVoltSec = 0;
+    let highVibSec = 0;
+    for (const p of slice) {
+      if (p.coolantTemp > SUSTAINED.tempOver) overheatSec += 0.25;
+      if (p.voltage < SUSTAINED.voltBelow) lowVoltSec += 0.25;
+      if (p.vibration > SUSTAINED.vibOver) highVibSec += 0.25;
+    }
+    return { overheatSec, lowVoltSec, highVibSec };
+  }
+  function buildSummary(patterns, band, scenarioKey) {
+    const lines = [];
+    if (band === "HEALTHY") {
+      lines.push("Normal vehicle behaviour");
+      lines.push("All monitored parameters within safe operating range.");
+      return lines;
+    }
+    const order = { HIGH: 0, MEDIUM: 1 };
+    const sorted = [...patterns].sort((a, b) => order[a.severity] - order[b.severity]);
+    if (sorted.length === 0) {
+      lines.push("Vehicle parameters deviating from normal range.");
+      return lines;
+    }
+    for (const p of sorted.slice(0, 2)) lines.push(p.description);
+    if (band === "CRITICAL") {
+      lines.push("Stop vehicle when safe and inspect immediately.");
+    }
+    return lines;
+  }
+  var init_healthEngine = __esm({
+    "js/simulation/healthEngine.js"() {
+      init_config();
+      init_math();
+      init_trendDetection();
+    }
+  });
+
+  // js/services/aiService.js
+  function shorten(text) {
+    return text.length > 72 ? text.slice(0, 72) + "\u2026" : text;
+  }
+  var AIService;
+  var init_aiService = __esm({
+    "js/services/aiService.js"() {
+      init_healthEngine();
+      init_math();
+      AIService = class {
+        constructor(alertService, audioService) {
+          this.alertService = alertService;
+          this.audioService = audioService;
+          this.timeline = [];
+          this.previous = null;
+          this.lastAnalysis = null;
+          this.stableCandidate = null;
+          this.stableCount = 0;
+          this.committedBand = null;
+          this.BAND_STABLE_REQUIRED = 3;
+        }
+        addTimelineEvent(text, icon = "\u2139", level = "info") {
+          const entry = { time: fmtTime(), text, icon, level, id: `evt-${Date.now()}-${Math.random().toString(36).slice(2, 7)}` };
+          this.timeline.unshift(entry);
+          if (this.timeline.length > 40) this.timeline.pop();
+          return entry;
+        }
+        /**
+         * Run analysis for a vehicle snapshot; fires timeline events
+         * and alert transitions when state changes.
+         */
+        analyze(vehicleData, meta = {}) {
+          const analysis = analyzeVehicleHealth(vehicleData);
+          this.lastAnalysis = analysis;
+          const rawBand = analysis.band;
+          if (this.stableCandidate === rawBand) this.stableCount += 1;
+          else {
+            this.stableCandidate = rawBand;
+            this.stableCount = 1;
+          }
+          const bandCommitted = this.stableCount >= this.BAND_STABLE_REQUIRED || this.committedBand === null;
+          if (bandCommitted) this.committedBand = rawBand;
+          analysis.band = this.committedBand || rawBand;
+          const patternIds = new Set(analysis.detectedPatterns.map((p) => p.id));
+          const prev = this.previous;
+          const firstRun = !prev;
+          if (firstRun) {
+            if (analysis.band === "HEALTHY") {
+              this.addTimelineEvent("Vehicle operating normally \u2014 AI engine active", "\u2713", "info");
+            } else {
+              this.addTimelineEvent(`Telemetry loaded \u2014 ${analysis.band} state detected`, analysis.band === "CRITICAL" ? "\u{1F534}" : "\u26A0", analysis.band === "CRITICAL" ? "critical" : "warn");
+            }
+          } else if (prev.band !== analysis.band) {
+            if (analysis.band === "ATTENTION") {
+              this.addTimelineEvent("Attention level reached \u2014 vehicle health degrading", "\u26A0", "warn");
+            } else if (analysis.band === "CRITICAL") {
+              this.addTimelineEvent("Critical level reached \u2014 high-risk pattern", "\u{1F534}", "critical");
+            } else {
+              this.addTimelineEvent("Vehicle recovered \u2014 back to healthy operation", "\u2705", "info");
+            }
+          }
+          if (!firstRun) {
+            for (const p of analysis.detectedPatterns) {
+              if (!prev.patternIds.has(p.id)) {
+                const icon = p.severity === "HIGH" ? "\u{1F534}" : p.severity === "MEDIUM" ? "\u26A0" : "\u2139";
+                this.addTimelineEvent(`${p.label} \u2014 ${shorten(p.description)}`, icon, p.severity === "HIGH" ? "critical" : "warn");
+              }
+            }
+          }
+          if (!firstRun && prev.band !== "HEALTHY" && analysis.band === "HEALTHY" && analysis.recommendations.some((r) => r.startsWith("Inspect") || r.startsWith("Schedule"))) {
+          }
+          if (this.alertService) {
+            this.alertService.update(analysis, meta);
+          }
+          if (this.audioService && !firstRun && prev && prev.band !== analysis.band) {
+            if (analysis.band === "CRITICAL") this.audioService.play("critical");
+            else if (analysis.band === "ATTENTION") this.audioService.play("warning");
+          }
+          this.previous = { band: analysis.band, patternIds };
+          return analysis;
+        }
+        resetTimeline() {
+          this.timeline = [];
+          this.previous = null;
+          this.lastAnalysis = null;
+          this.stableCandidate = null;
+          this.stableCount = 0;
+          this.committedBand = null;
+        }
+        /** Called when switching to another vehicle — start fresh
+         *  transition detection without wiping the shared timeline. */
+        vehicleSwitched() {
+          this.previous = null;
+          this.lastAnalysis = null;
+          this.stableCandidate = null;
+          this.stableCount = 0;
+          this.committedBand = null;
+        }
+      };
+    }
+  });
+
+  // js/services/alertService.js
+  var idCounter, uid, AlertService;
+  var init_alertService = __esm({
+    "js/services/alertService.js"() {
+      init_math();
+      idCounter = 0;
+      uid = () => `al-${Date.now()}-${idCounter++}`;
+      AlertService = class {
+        constructor() {
+          this.notifications = [];
+          this.active = null;
+          this.band = null;
+          this.toastQueue = [];
+          this.recovered = false;
+          this.hooks = {
+            onBanner: null,
+            onToast: null,
+            onNotification: null,
+            onWhatsApp: null,
+            onSound: null
+          };
+        }
+        update(analysis, meta = {}) {
+          const { healthScore, riskLevel, band, recommendations } = analysis;
+          const vehicle = meta.vehicleName || "Active vehicle";
+          const plate = meta.plate || "";
+          const bandChanged = this.band !== null && this.band !== band;
+          if (this.band === null) {
+            this.band = band;
+            if (band === "ATTENTION") {
+              this.raise({
+                level: "warning",
+                title: "Vehicle Health Warning",
+                message: this.messageFor(analysis),
+                health: healthScore,
+                risk: riskLevel,
+                recommendation: recommendations[0] || "Inspect vehicle",
+                vehicle,
+                plate
+              });
+            } else if (band === "CRITICAL") {
+              this.raise({
+                level: "critical",
+                title: "Critical Vehicle Alert",
+                message: this.messageFor(analysis),
+                health: healthScore,
+                risk: riskLevel,
+                recommendation: recommendations[0] || "Stop vehicle when safe and inspect immediately",
+                vehicle,
+                plate
+              });
+            }
+            return;
+          }
+          if (bandChanged && band === "ATTENTION" && this.band !== "CRITICAL") {
+            this.raise({
+              level: "warning",
+              title: "Vehicle Health Warning",
+              message: this.messageFor(analysis),
+              health: healthScore,
+              risk: riskLevel,
+              recommendation: recommendations[0] || "Inspect vehicle",
+              vehicle,
+              plate
+            });
+          }
+          if (bandChanged && band === "CRITICAL") {
+            this.raise({
+              level: "critical",
+              title: "Critical Vehicle Alert",
+              message: this.messageFor(analysis),
+              health: healthScore,
+              risk: riskLevel,
+              recommendation: recommendations[0] || "Stop vehicle when safe and inspect immediately",
+              vehicle,
+              plate
+            });
+          }
+          if (bandChanged && this.band === "CRITICAL" && band !== "CRITICAL") {
+            this.recovered = true;
+            this.addNotification({
+              level: "info",
+              title: "Vehicle Recovered",
+              message: "Health restored after maintenance \u2014 vehicle operating normally.",
+              health: healthScore,
+              risk: riskLevel,
+              recommendation: "Continue monitoring",
+              time: fmtTime(),
+              vehicle,
+              plate
+            });
+            this.active = null;
+            this.band = band;
+            this.hooks.onBanner?.(null);
+            this.hooks.onWhatsApp?.(null);
+            return;
+          }
+          if (this.active) {
+            this.active.health = healthScore;
+            this.active.risk = riskLevel;
+            this.active.time = fmtTime();
+            this.hooks.onBanner?.(this.active);
+            this.hooks.onWhatsApp?.(this.active);
+          }
+          this.band = band;
+        }
+        raise(alert) {
+          this.active = { ...alert, time: fmtTime() };
+          this.addNotification({ ...alert, time: fmtTime() });
+          this.hooks.onBanner?.(this.active);
+          this.hooks.onWhatsApp?.(this.active);
+          this.hooks.onToast?.(this.active);
+          this.hooks.onSound?.(alert.level);
+        }
+        messageFor(analysis) {
+          const patterns = analysis.detectedPatterns.map((p) => p.label).filter(Boolean);
+          if (patterns.length === 0) return "Vehicle parameters are deviating from normal operating range.";
+          return `${patterns.slice(0, 2).join("; ")}.`;
+        }
+        addNotification(n) {
+          this.notifications.unshift({ ...n, id: uid() });
+          if (this.notifications.length > 50) this.notifications.pop();
+          this.hooks.onNotification?.(this.notifications);
+        }
+        dismissNotification(id) {
+          this.notifications = this.notifications.filter((n) => n.id !== id);
+          this.hooks.onNotification?.(this.notifications);
+        }
+        clear() {
+          this.notifications = [];
+          this.active = null;
+          this.band = null;
+          this.recovered = false;
+          this.hooks.onBanner?.(null);
+          this.hooks.onWhatsApp?.(null);
+          this.hooks.onNotification?.(this.notifications);
+        }
+      };
+    }
+  });
+
+  // js/services/audioService.js
+  var AudioService;
+  var init_audioService = __esm({
+    "js/services/audioService.js"() {
+      AudioService = class {
+        constructor() {
+          this.enabled = false;
+          this.ctx = null;
+        }
+        setEnabled(on) {
+          this.enabled = on;
+          if (on && !this.ctx) {
+            try {
+              const AC = window.AudioContext || window.webkitAudioContext;
+              if (AC) this.ctx = new AC();
+            } catch {
+              this.ctx = null;
+            }
+          }
+          if (this.ctx && this.ctx.state === "suspended") this.ctx.resume().catch(() => {
+          });
+          if (!on && this.ctx) this.ctx.suspend().catch(() => {
+          });
+        }
+        get isEnabled() {
+          return this.enabled;
+        }
+        play(kind) {
+          if (!this.enabled || !this.ctx) return;
+          if (kind === "warning") this.beep(660, 0.16, 0, 0.08, 2);
+          else if (kind === "critical") {
+            this.beep(880, 0.18, 0, 0.06, 1);
+            this.beep(620, 0.18, 0.22, 0.06, 1);
+            this.beep(440, 0.3, 0.44, 0.07, 1);
+          }
+        }
+        beep(freq, dur, delay, gain, times) {
+          const ctx = this.ctx;
+          const now = ctx.currentTime;
+          for (let i = 0; i < times; i++) {
+            const t0 = now + delay + i * (dur + 0.05);
+            const osc = ctx.createOscillator();
+            const g = ctx.createGain();
+            osc.type = "sine";
+            osc.frequency.value = freq;
+            g.gain.setValueAtTime(1e-4, t0);
+            g.gain.exponentialRampToValueAtTime(gain, t0 + 0.015);
+            g.gain.exponentialRampToValueAtTime(1e-4, t0 + dur);
+            osc.connect(g).connect(ctx.destination);
+            osc.start(t0);
+            osc.stop(t0 + dur + 0.05);
+          }
+        }
+      };
+    }
+  });
+
+  // js/components/SimulationControls.js
+  var SimulationControls;
+  var init_SimulationControls = __esm({
+    "js/components/SimulationControls.js"() {
+      init_config();
+      SimulationControls = class {
+        constructor(container, app) {
+          this.el = container;
+          this.app = app;
+          this.render();
+        }
+        render() {
+          const el = this.el;
+          el.innerHTML = `
+      <div class="panel sim-controls">
+        <div class="panel-head">
+          <h2 class="panel-title">\u{1F39B} Simulation Control</h2>
+          <span class="live-chip" id="sim-state-chip">IDLE</span>
+        </div>
+
+        <div class="btn-row transport">
+          <button class="btn btn-start" id="btn-start">
+            <span class="btn-icon">\u25B6</span><span class="btn-label">START SIMULATION</span>
+          </button>
+          <button class="btn btn-reset" id="btn-reset" title="Reset to normal">
+            <span class="btn-icon">\u21BB</span><span class="btn-label">RESET</span>
+          </button>
+        </div>
+
+        <div class="ctrl-group">
+          <div class="ctrl-label">SCENARIO</div>
+          <div class="scenario-grid" id="scenario-grid"></div>
+        </div>
+
+        <div class="ctrl-group">
+          <div class="ctrl-label">SIMULATION SPEED</div>
+          <div class="segmented" id="speed-seg">
+            ${[1, 2, 5, 10].map((s) => `<button class="seg-btn" data-speed="${s}">${s}x</button>`).join("")}
+          </div>
+        </div>
+
+        <button class="btn btn-maintenance" id="btn-maintenance">
+          <span class="btn-icon">\u{1F527}</span><span class="btn-label">SIMULATE MAINTENANCE</span>
+        </button>
+        <div class="maintenance-hint" id="maint-hint">Performs service on the active vehicle and gradually restores it to normal.</div>
+      </div>
+    `;
+          const grid = el.querySelector("#scenario-grid");
+          const order = ["NORMAL", "OVERHEATING", "LOW_VOLTAGE", "HIGH_VIBRATION", "ENGINE_INSTABILITY", "CRITICAL_FAILURE", "RECOVERY"];
+          this.scenarioBtns = {};
+          for (const key of order) {
+            const sc = SCENARIOS[key];
+            const b = document.createElement("button");
+            b.className = "scenario-btn";
+            b.dataset.scenario = key;
+            b.innerHTML = `<span class="scn-dot"></span>${sc.label}`;
+            b.addEventListener("click", () => this.app.selectScenario(key));
+            grid.appendChild(b);
+            this.scenarioBtns[key] = b;
+          }
+          el.querySelector("#btn-start").addEventListener("click", () => this.app.toggleRun());
+          el.querySelector("#btn-reset").addEventListener("click", () => this.app.resetSimulation());
+          this.speedBtns = [...el.querySelectorAll(".seg-btn")];
+          el.querySelector("#speed-seg").addEventListener("click", (e) => {
+            const btn = e.target.closest(".seg-btn");
+            if (btn) this.app.setSpeed(Number(btn.dataset.speed));
+          });
+          el.querySelector("#btn-maintenance").addEventListener("click", () => this.app.simulateMaintenance());
+          this.sync(this.app);
+        }
+        /** Reflect app state (called on change and every frame-ish tick) */
+        sync(app) {
+          const chip = this.el.querySelector("#sim-state-chip");
+          if (app.running) {
+            chip.textContent = "\u25CF RUNNING";
+            chip.className = "live-chip running";
+          } else {
+            chip.textContent = "\u23F8 PAUSED";
+            chip.className = "live-chip paused";
+          }
+          const startBtn = this.el.querySelector("#btn-start");
+          startBtn.querySelector(".btn-icon").textContent = app.running ? "\u23F8" : "\u25B6";
+          startBtn.querySelector(".btn-label").textContent = app.running ? "PAUSE" : "START SIMULATION";
+          startBtn.classList.toggle("is-paused", app.running);
+          for (const key of Object.keys(this.scenarioBtns)) {
+            this.scenarioBtns[key].classList.toggle("active", app.activeScenario === key);
+          }
+          this.speedBtns.forEach((b) => b.classList.toggle("active", Number(b.dataset.speed) === app.speed));
+          const maint = this.el.querySelector("#btn-maintenance");
+          const needMaint = app.activeVehicle && app.activeVehicle.analysis && app.activeVehicle.analysis.band !== "HEALTHY";
+          maint.classList.toggle("pulse", !!needMaint);
+          const hint = this.el.querySelector("#maint-hint");
+          hint.textContent = needMaint ? "\u26A0 Active vehicle needs attention \u2014 run maintenance to restore it." : "Performs service on the active vehicle and gradually restores it to normal.";
+        }
+      };
+    }
+  });
+
+  // js/components/FleetPanel.js
+  var FleetPanel;
+  var init_FleetPanel = __esm({
+    "js/components/FleetPanel.js"() {
+      FleetPanel = class {
+        constructor(container, app) {
+          this.el = container;
+          this.app = app;
+          this.cards = /* @__PURE__ */ new Map();
+          this.render();
+        }
+        render() {
+          this.el.innerHTML = `
+      <div class="panel fleet-panel">
+        <div class="panel-head">
+          <h2 class="panel-title">\u{1F69A} Fleet Overview</h2>
+          <span class="panel-sub" id="fleet-count">${this.app.trucks.length} vehicles \xB7 live</span>
+        </div>
+        <div class="fleet-list" id="fleet-list"></div>
+      </div>
+    `;
+          const list = this.el.querySelector("#fleet-list");
+          for (const truck of this.app.trucks) {
+            const card = document.createElement("button");
+            card.className = "fleet-card";
+            card.dataset.id = truck.id;
+            const routeInfo = truck.route || "";
+            card.innerHTML = `
+        <div class="fleet-card-top">
+          <span class="fleet-name">${truck.name}</span>
+          <span class="fleet-status-dot">\u25CF</span>
+        </div>
+        <div class="fleet-plate mono">${truck.plate}</div>
+        ${routeInfo ? `<div class="fleet-route">\u{1F4CD} ${routeInfo}</div>` : ""}
+        <div class="fleet-health-row">
+          <span class="fleet-health-val">--</span><span class="fleet-health-max">/100</span>
+          <span class="fleet-band-chip">\u2014</span>
+        </div>
+        <div class="fleet-bar"><div class="fleet-bar-fill"></div></div>
+      `;
+            card.addEventListener("click", () => this.app.selectTruck(truck.id));
+            list.appendChild(card);
+            this.cards.set(truck.id, card);
+          }
+        }
+        update() {
+          for (const truck of this.app.trucks) {
+            const card = this.cards.get(truck.id);
+            if (!card) continue;
+            const health = truck.analysis ? truck.analysis.healthScore : null;
+            const band = truck.analysis ? truck.analysis.band : null;
+            const isActive = truck.id === this.app.activeTruckId;
+            card.classList.toggle("active", isActive);
+            const dot = card.querySelector(".fleet-status-dot");
+            dot.className = `fleet-status-dot band-${(band || "HEALTHY").toLowerCase()}`;
+            const val = card.querySelector(".fleet-health-val");
+            const fill = card.querySelector(".fleet-bar-fill");
+            const chip = card.querySelector(".fleet-band-chip");
+            if (health !== null && health !== void 0) {
+              val.textContent = health;
+              chip.textContent = band === "HEALTHY" ? "\u{1F7E2}" : band === "ATTENTION" ? "\u{1F7E1}" : "\u{1F534}";
+              chip.className = `fleet-band-chip band-${band.toLowerCase()}`;
+              fill.style.width = `${health}%`;
+              fill.className = `fleet-bar-fill band-${band.toLowerCase()}`;
+            } else {
+              val.textContent = "--";
+              chip.textContent = "\u2014";
+              fill.style.width = "0%";
+            }
+          }
+        }
+      };
+    }
+  });
+
+  // js/components/HealthScore.js
+  function bandColor(band) {
+    if (band === "CRITICAL") return "var(--bad)";
+    if (band === "ATTENTION") return "var(--warn)";
+    return "var(--ok)";
+  }
+  var RING_R, CIRC, HealthScore;
+  var init_HealthScore = __esm({
+    "js/components/HealthScore.js"() {
+      init_math();
+      init_config();
+      RING_R = 54;
+      CIRC = 2 * Math.PI * RING_R;
+      HealthScore = class {
+        constructor(container, app) {
+          this.el = container;
+          this.app = app;
+          this.display = 95;
+          this.prevAnalysis = null;
+          this.render();
+        }
+        render() {
+          this.el.innerHTML = `
+      <div class="panel health-panel">
+        <div class="panel-head">
+          <h2 class="panel-title">\u{1FA7A} Vehicle Health</h2>
+          <span class="panel-sub" id="hs-vehicle">\u2014</span>
+        </div>
+
+        <div class="health-main">
+          <div class="ring-wrap">
+            <svg class="ring" width="150" height="150" viewBox="0 0 150 150">
+              <circle class="ring-bg" cx="75" cy="75" r="${RING_R}" />
+              <circle class="ring-fg" id="ring-fg" cx="75" cy="75" r="${RING_R}" />
+            </svg>
+            <div class="ring-center">
+              <div class="ring-value" id="ring-value">--</div>
+              <div class="ring-max">/ 100</div>
+            </div>
+          </div>
+
+          <div class="health-meta">
+            <div class="status-badge" id="status-badge"><span class="status-icon">\u{1F7E2}</span><span id="status-text">HEALTHY</span></div>
+            <div class="meta-chips">
+              <div class="chip">
+                <span class="chip-label">RISK</span>
+                <span class="chip-value" id="risk-value">LOW</span>
+              </div>
+              <div class="chip">
+                <span class="chip-label">CONFIDENCE</span>
+                <span class="chip-value" id="conf-value">--%</span>
+              </div>
+            </div>
+            <div class="conf-bar"><div class="conf-fill" id="conf-fill"></div></div>
+            <div class="veh-identity mono" id="hs-plate">\u2014</div>
+          </div>
+        </div>
+
+        <div class="component-breakdown" id="comp-break"></div>
+      </div>
+    `;
+          this.ringFg = this.el.querySelector("#ring-fg");
+          this.ringValue = this.el.querySelector("#ring-value");
+          this.statusBadge = this.el.querySelector("#status-badge");
+          this.statusText = this.el.querySelector("#status-text");
+          this.riskValue = this.el.querySelector("#risk-value");
+          this.confValue = this.el.querySelector("#conf-value");
+          this.confFill = this.el.querySelector("#conf-fill");
+          this.vehPlate = this.el.querySelector("#hs-plate");
+          this.vehName = this.el.querySelector("#hs-vehicle");
+          this.compBreak = this.el.querySelector("#comp-break");
+          this.compLabels = {
+            temperature: "Coolant",
+            voltage: "Voltage",
+            rpm: "RPM",
+            vibration: "Vibration",
+            engineLoad: "Load",
+            speed: "Speed"
+          };
+          this.compRows = {};
+          for (const key of Object.keys(this.compLabels)) {
+            const row = document.createElement("div");
+            row.className = "comp-row";
+            row.innerHTML = `
+        <span class="comp-label">${this.compLabels[key]}</span>
+        <div class="comp-bar"><div class="comp-fill"></div></div>
+        <span class="comp-val mono">0</span>
+      `;
+            this.compBreak.appendChild(row);
+            this.compRows[key] = {
+              fill: row.querySelector(".comp-fill"),
+              val: row.querySelector(".comp-val")
+            };
+          }
+        }
+        update(vehicle) {
+          const a = vehicle.analysis;
+          if (!a) return;
+          this.display = easeToward(this.display, a.healthScore, 0.16);
+          if (Math.abs(this.display - a.healthScore) < 0.3) this.display = a.healthScore;
+          const val = Math.round(this.display);
+          this.ringValue.textContent = val;
+          const offset = CIRC * (1 - val / 100);
+          this.ringFg.style.strokeDashoffset = String(offset);
+          this.ringFg.style.stroke = bandColor(a.band);
+          this.statusBadge.className = `status-badge band-${a.band.toLowerCase()}`;
+          this.statusText.textContent = a.band;
+          this.statusBadge.querySelector(".status-icon").textContent = a.band === "HEALTHY" ? "\u{1F7E2}" : a.band === "ATTENTION" ? "\u{1F7E1}" : "\u{1F534}";
+          this.riskValue.textContent = a.riskLevel;
+          this.riskValue.className = `chip-value risk-${a.riskLevel.toLowerCase()}`;
+          this.confValue.textContent = `${a.confidence}%`;
+          this.confFill.style.width = `${a.confidence}%`;
+          this.confFill.style.background = bandColor(a.band);
+          const plate = vehicle.plate || PLACEHOLDER_REG_NUMBER;
+          if (this.vehPlate.textContent !== plate) this.vehPlate.textContent = plate;
+          if (this.vehName.textContent !== vehicle.name) this.vehName.textContent = vehicle.name;
+          this.renderComponents(a);
+        }
+        renderComponents(a) {
+          if (!a.components) return;
+          for (const key of Object.keys(this.compLabels)) {
+            const row = this.compRows[key];
+            const v = clamp(Math.round(a.components[key] || 0), 0, 100);
+            row.val.textContent = v;
+            row.fill.style.width = `${v}%`;
+            row.fill.style.background = v >= 90 ? "var(--ok)" : v >= 60 ? "var(--warn)" : "var(--bad)";
+          }
+        }
+      };
+    }
+  });
+
+  // js/components/VehicleVisualization.js
+  var VehicleVisualization;
+  var init_VehicleVisualization = __esm({
+    "js/components/VehicleVisualization.js"() {
+      init_config();
+      init_math();
+      VehicleVisualization = class {
+        constructor(container, app) {
+          this.el = container;
+          this.app = app;
+          this.disp = { rpm: 2200, temp: 89, voltage: 13.8, vib: 12 };
+          this.render();
+        }
+        render() {
+          this.el.innerHTML = `
+      <div class="panel vehicle-panel">
+        <div class="panel-head">
+          <h2 class="panel-title">\u{1F69B} Vehicle</h2>
+          <div class="status-pulse" id="veh-status">
+            <span class="pulse-dot"></span><span id="veh-status-text">SIMULATION IDLE</span>
+          </div>
+        </div>
+
+        <div class="vehicle-stage">
+          <div class="gauge g-rpm"><span class="gauge-label">RPM</span><span class="gauge-val mono" id="g-rpm-val">--</span></div>
+          <div class="gauge g-temp"><span class="gauge-label">TEMP</span><span class="gauge-val mono" id="g-temp-val">--</span></div>
+          <div class="gauge g-volt"><span class="gauge-label">VOLT</span><span class="gauge-val mono" id="g-volt-val">--</span></div>
+          <div class="gauge g-vib"><span class="gauge-label">VIB</span><span class="gauge-val mono" id="g-vib-val">--</span></div>
+
+          <svg class="truck-svg" viewBox="0 0 520 240" role="img" aria-label="Simulated truck">
+            <defs>
+              <linearGradient id="bodyGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#1d2c47"/>
+                <stop offset="100%" stop-color="#0e1830"/>
+              </linearGradient>
+              <linearGradient id="trailGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#23355a"/>
+                <stop offset="100%" stop-color="#111f3d"/>
+              </linearGradient>
+              <radialGradient id="underglow" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stop-color="#22d3ee" stop-opacity="0.5"/>
+                <stop offset="100%" stop-color="#22d3ee" stop-opacity="0"/>
+              </radialGradient>
+            </defs>
+
+            <!-- road -->
+            <rect class="road" x="0" y="196" width="520" height="26" rx="4" fill="#0b1526"/>
+            <line class="road-line" x1="0" y1="209" x2="520" y2="209" stroke="#1d3a5f" stroke-width="2" stroke-dasharray="18 14"/>
+
+            <!-- glow -->
+            <ellipse class="veh-glow" id="veh-glow" cx="260" cy="180" rx="240" ry="30" fill="url(#underglow)"/>
+
+            <!-- trailer -->
+            <rect x="252" y="52" width="248" height="132" rx="8" fill="url(#trailGrad)" stroke="#2c4270" stroke-width="2"/>
+            <rect x="252" y="52" width="248" height="132" rx="8" fill="none" stroke="url(#underglow)" stroke-width="0"/>
+            <g class="trailer-lines" stroke="#2c4270" stroke-width="2">
+              <line x1="300" y1="52" x2="300" y2="184"/>
+              <line x1="348" y1="52" x2="348" y2="184"/>
+              <line x1="396" y1="52" x2="396" y2="184"/>
+              <line x1="444" y1="52" x2="444" y2="184"/>
+              <line x1="252" y1="118" x2="500" y2="118"/>
+            </g>
+            <rect x="446" y="152" width="38" height="20" rx="4" fill="#1d3a5f" stroke="#33507f"/>
+
+            <!-- cab -->
+            <path d="M120 150 L120 96 Q120 88 128 88 L200 88 Q212 88 218 98 L236 128 Q240 136 240 150 Z"
+                  fill="url(#bodyGrad)" stroke="#2c4270" stroke-width="2"/>
+            <path class="cab-window" d="M140 100 Q138 92 150 92 L196 92 Q206 92 210 102 L214 122 L150 122 Z"
+                  fill="#0d1830" stroke="#33507f" stroke-width="1.5"/>
+            <rect x="126" y="150" width="110" height="8" rx="3" fill="#22345a"/>
+
+            <!-- chassis -->
+            <rect x="120" y="166" width="380" height="10" rx="4" fill="#1a2b4e"/>
+            <!-- front bumper / grille -->
+            <rect x="112" y="140" width="12" height="20" rx="3" fill="#24375f"/>
+
+            <!-- wheels -->
+            <g class="wheels">
+              <circle class="wheel" cx="176" cy="196" r="17" fill="#0a1222" stroke="#33507f" stroke-width="3"/>
+              <circle class="wheel-cap" cx="176" cy="196" r="6" fill="#2c4270"/>
+              <circle class="wheel" cx="296" cy="196" r="17" fill="#0a1222" stroke="#33507f" stroke-width="3"/>
+              <circle class="wheel-cap" cx="296" cy="196" r="6" fill="#2c4270"/>
+              <circle class="wheel" cx="348" cy="196" r="17" fill="#0a1222" stroke="#33507f" stroke-width="3"/>
+              <circle class="wheel-cap" cx="348" cy="196" r="6" fill="#2c4270"/>
+              <circle class="wheel" cx="434" cy="196" r="17" fill="#0a1222" stroke="#33507f" stroke-width="3"/>
+              <circle class="wheel-cap" cx="434" cy="196" r="6" fill="#2c4270"/>
+            </g>
+
+            <!-- headlight -->
+            <rect x="114" y="128" width="8" height="7" rx="2" class="headlight" fill="#fde68a"/>
+
+            <!-- data pulse from engine -->
+            <circle class="data-pulse" cx="180" cy="110" r="3" fill="#22d3ee"/>
+            <circle class="data-pulse p2" cx="214" cy="120" r="2.5" fill="#34d399"/>
+          </svg>
+
+          <!-- animated connection lines -->
+          <svg class="conn-svg" viewBox="0 0 520 240" preserveAspectRatio="none" aria-hidden="true">
+            <path class="conn-line" data-conn="rpm"   d="M30 58 C 130 60, 170 90, 190 108" />
+            <path class="conn-line" data-conn="temp"  d="M30 140 C 120 130, 160 140, 175 146" />
+            <path class="conn-line" data-conn="volt"  d="M490 52 C 400 70, 320 96, 268 120" />
+            <path class="conn-line" data-conn="vib"   d="M492 156 C 420 140, 330 150, 262 152" />
+          </svg>
+        </div>
+
+        <div class="vehicle-footer">
+          <span class="veh-tag mono" id="veh-scenario">SCENARIO: NORMAL</span>
+          <span class="veh-tag" id="veh-state-text">Vehicle ready</span>
+        </div>
+      </div>
+    `;
+          this.vehStatus = this.el.querySelector("#veh-status");
+          this.vehStatusText = this.el.querySelector("#veh-status-text");
+          this.vehGlow = this.el.querySelector("#veh-glow");
+          this.vehScenario = this.el.querySelector("#veh-scenario");
+          this.vehStateText = this.el.querySelector("#veh-state-text");
+          this.gaugeEls = {
+            rpm: this.el.querySelector("#g-rpm-val"),
+            temp: this.el.querySelector("#g-temp-val"),
+            volt: this.el.querySelector("#g-volt-val"),
+            vib: this.el.querySelector("#g-vib-val")
+          };
+        }
+        update(vehicle) {
+          const s = vehicle.sim.state;
+          const a = vehicle.analysis;
+          this.disp.rpm = easeToward(this.disp.rpm, s.rpm, 0.25);
+          this.disp.temp = easeToward(this.disp.temp, s.coolantTemp, 0.22);
+          this.disp.voltage = easeToward(this.disp.voltage, s.voltage, 0.25);
+          this.disp.vib = easeToward(this.disp.vib, s.vibration, 0.25);
+          this.gaugeEls.rpm.textContent = Math.round(this.disp.rpm);
+          this.gaugeEls.temp.textContent = `${Math.round(this.disp.temp)}\xB0`;
+          this.gaugeEls.volt.textContent = this.disp.voltage.toFixed(1);
+          this.gaugeEls.vib.textContent = `${Math.round(this.disp.vib)} \xB7 ${vibrationLevel(s.vibration)}`;
+          if (a) {
+            const band = a.band.toLowerCase();
+            this.vehStatus.className = `status-pulse band-${band}`;
+            this.vehStatusText.textContent = this.app.running ? "SIMULATION ACTIVE" : "PAUSED";
+            this.vehGlow.style.opacity = band === "critical" ? "1" : band === "attention" ? "0.7" : "0.45";
+            const color = band === "critical" ? "#f87171" : band === "attention" ? "#fbbf24" : "#22d3ee";
+            this.vehGlow.querySelector("stop") && this.vehGlow.setAttribute("fill", `url(#underglow)`);
+            const stops = this.vehGlow.ownerSVGElement.querySelectorAll("#underglow stop");
+            stops[0].setAttribute("stop-color", color);
+            stops[1].setAttribute("stop-color", color);
+            this.el.querySelector(".data-pulse").style.fill = color;
+          }
+          const scKey = vehicle.sim.scenarioKey;
+          this.vehScenario.textContent = `SCENARIO: ${scKey.replace(/_/g, " ")}`;
+          if (vehicle.recovered) {
+            this.vehStateText.textContent = "\u{1F7E2} Vehicle recovered";
+            this.vehStateText.className = "veh-tag ok-text";
+          } else if (a && a.band === "CRITICAL") {
+            this.vehStateText.textContent = "\u{1F534} Critical state \u2014 action required";
+            this.vehStateText.className = "veh-tag bad-text";
+          } else if (a && a.band === "ATTENTION") {
+            this.vehStateText.textContent = "\u{1F7E1} Attention \u2014 monitor closely";
+            this.vehStateText.className = "veh-tag warn-text";
+          } else {
+            this.vehStateText.textContent = "\u{1F7E2} Operating normally";
+            this.vehStateText.className = "veh-tag ok-text";
+          }
+        }
+      };
+    }
+  });
+
+  // js/components/TelemetryPanel.js
+  var METRICS, TelemetryPanel;
+  var init_TelemetryPanel = __esm({
+    "js/components/TelemetryPanel.js"() {
+      init_config();
+      init_math();
+      METRICS = [
+        {
+          key: "rpm",
+          label: "RPM",
+          icon: "\u2699\uFE0F",
+          unit: "",
+          barMax: 4e3,
+          warnFrom: 3e3,
+          badFrom: 3400,
+          val: (s) => Math.round(s.rpm),
+          norm: (s) => clamp(s.rpm / 4e3, 0, 1)
+        },
+        {
+          key: "coolantTemp",
+          label: "Coolant Temp",
+          icon: "\u{1F321}\uFE0F",
+          unit: "\xB0C",
+          barMax: 120,
+          warnFrom: 97,
+          badFrom: 105,
+          val: (s) => `${s.coolantTemp.toFixed(1)}`,
+          norm: (s) => clamp(s.coolantTemp / 120, 0, 1)
+        },
+        {
+          key: "voltage",
+          label: "Voltage",
+          icon: "\u{1F50B}",
+          unit: "V",
+          barMax: 15.5,
+          warnFrom: 12.7,
+          badFrom: 12.4,
+          val: (s) => s.voltage.toFixed(2),
+          norm: (s) => clamp(s.voltage / 15.5, 0, 1)
+        },
+        {
+          key: "speed",
+          label: "Speed",
+          icon: "\u{1F6E3}\uFE0F",
+          unit: "km/h",
+          barMax: 130,
+          warnFrom: 110,
+          badFrom: 125,
+          val: (s) => Math.round(s.speed),
+          norm: (s) => clamp(s.speed / 130, 0, 1)
+        },
+        {
+          key: "engineLoad",
+          label: "Engine Load",
+          icon: "\u{1F527}",
+          unit: "%",
+          barMax: 100,
+          warnFrom: 78,
+          badFrom: 92,
+          val: (s) => Math.round(s.engineLoad),
+          norm: (s) => clamp(s.engineLoad / 100, 0, 1)
+        },
+        {
+          key: "vibration",
+          label: "Vibration",
+          icon: "\u{1F4F3}",
+          unit: "",
+          barMax: 100,
+          warnFrom: 55,
+          badFrom: 75,
+          val: (s) => vibrationLevel(s.vibration),
+          norm: (s) => clamp(s.vibration / 100, 0, 1)
+        },
+        {
+          key: "fuelEfficiency",
+          label: "Fuel Eff.",
+          icon: "\u26FD",
+          unit: "%",
+          barMax: 100,
+          warnFrom: 50,
+          badFrom: 35,
+          val: (s) => Math.round(s.fuelEfficiency),
+          norm: (s) => clamp(s.fuelEfficiency / 100, 0, 1)
+        }
+      ];
+      TelemetryPanel = class {
+        constructor(container, app) {
+          this.el = container;
+          this.app = app;
+          this.disp = {};
+          this.metricEls = {};
+          this.render();
+        }
+        render() {
+          this.el.innerHTML = `
+      <div class="panel telemetry-panel">
+        <div class="panel-head">
+          <h2 class="panel-title">\u{1F4E1} Live Telemetry</h2>
+          <span class="panel-sub mono" id="tel-ts">\u2014</span>
+        </div>
+        <div class="metric-grid" id="metric-grid"></div>
+      </div>
+    `;
+          const grid = this.el.querySelector("#metric-grid");
+          for (const m of METRICS) {
+            const card = document.createElement("div");
+            card.className = "metric-card";
+            card.innerHTML = `
+        <div class="metric-head">
+          <span class="metric-icon">${m.icon}</span>
+          <span class="metric-label">${m.label}</span>
+        </div>
+        <div class="metric-value mono" id="m-${m.key}">--</div>
+        <div class="metric-bar"><div class="metric-fill" id="mf-${m.key}"></div></div>
+        <div class="metric-foot">
+          <span class="metric-state" id="ms-${m.key}">\u2014</span>
+          <span class="metric-unit">${m.unit}</span>
+        </div>
+      `;
+            grid.appendChild(card);
+            this.metricEls[m.key] = {
+              value: card.querySelector(`#m-${m.key}`),
+              fill: card.querySelector(`#mf-${m.key}`),
+              state: card.querySelector(`#ms-${m.key}`)
+            };
+          }
+          this.metricEls._ts = this.el.querySelector("#tel-ts");
+        }
+        update(vehicle) {
+          const s = vehicle.sim.state;
+          for (const m of METRICS) {
+            if (this.disp[m.key] === void 0) this.disp[m.key] = s[m.key];
+            const cur = m.key === "coolantTemp" || m.key === "voltage" ? easeToward(this.disp[m.key], s[m.key], 0.22) : easeToward(this.disp[m.key], s[m.key], 0.25);
+            this.disp[m.key] = cur;
+            const el = this.metricEls[m.key];
+            el.value.textContent = m.val({ ...s, [m.key]: cur });
+            el.fill.style.width = `${m.norm({ ...s, [m.key]: cur }) * 100}%`;
+            const color = cur >= m.badFrom ? "var(--bad)" : cur >= m.warnFrom ? "var(--warn)" : "var(--ok)";
+            el.fill.style.background = color;
+            el.value.style.color = color;
+            let stateText = "OK";
+            if (m.key === "voltage" && cur >= 12.7) stateText = "NORMAL";
+            if (m.key === "coolantTemp" && cur < 97) stateText = "NORMAL";
+            if (m.key === "rpm" && cur >= 3e3) stateText = "HIGH";
+            if (m.key === "engineLoad" && cur >= 78) stateText = "HIGH";
+            if (m.key === "speed" && cur >= 110) stateText = "FAST";
+            if (m.key === "vibration") stateText = s.vibration > 55 ? "ABNORMAL" : "NORMAL";
+            if (m.key === "fuelEfficiency" && cur < 50) stateText = "LOW";
+            const isBad = cur >= m.badFrom || m.key === "vibration" && s.vibration > 74;
+            el.state.textContent = isBad ? "\u26A0 ABNORMAL" : stateText;
+            el.state.className = `metric-state ${isBad ? "bad" : cur >= m.warnFrom ? "warn" : "ok"}`;
+          }
+          this.metricEls._ts.textContent = `T+ ${Math.round(vehicle.sim.timeMs / 1e3)}s`;
+        }
+      };
+    }
+  });
+
+  // js/components/HealthChart.js
+  function hexToRgba(hex, alpha) {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return `rgba(${r},${g},${b},${alpha})`;
+  }
+  var CHART_DEFS, HealthChart;
+  var init_HealthChart = __esm({
+    "js/components/HealthChart.js"() {
+      init_math();
+      CHART_DEFS = [
+        { key: "rpm", label: "RPM", unit: "rpm", min: 0, max: 4e3, warn: [3e3, 3400], color: "#22d3ee", fmt: (v) => Math.round(v) },
+        { key: "coolantTemp", label: "Coolant Temp", unit: "\xB0C", min: 60, max: 115, warn: [97, 105], color: "#fb923c", fmt: (v) => `${Math.round(v)}\xB0` },
+        { key: "voltage", label: "Voltage", unit: "V", min: 11.5, max: 15, warn: [12.7, 12.4], color: "#34d399", fmt: (v) => v.toFixed(1) },
+        { key: "engineLoad", label: "Engine Load", unit: "%", min: 0, max: 100, warn: [78, 92], color: "#a78bfa", fmt: (v) => `${Math.round(v)}%` },
+        { key: "vibration", label: "Vibration", unit: "0-100", min: 0, max: 100, warn: [55, 75], color: "#f472b6", fmt: (v) => Math.round(v) }
+      ];
+      HealthChart = class {
+        constructor(container, app) {
+          this.el = container;
+          this.app = app;
+          this.canvases = {};
+          this.render();
+        }
+        render() {
+          this.el.innerHTML = `
+      <div class="panel charts-panel">
+        <div class="panel-head">
+          <h2 class="panel-title">\u{1F4C8} Live History</h2>
+          <span class="panel-sub">last 100 data points \xB7 single simulation source</span>
+        </div>
+        <div class="chart-grid" id="chart-grid"></div>
+      </div>
+    `;
+          const grid = this.el.querySelector("#chart-grid");
+          for (const def of CHART_DEFS) {
+            const wrap = document.createElement("div");
+            wrap.className = "chart-card";
+            wrap.innerHTML = `
+        <div class="chart-head">
+          <span class="chart-label">${def.label}</span>
+          <span class="chart-now mono" id="cv-${def.key}">--</span>
+        </div>
+        <canvas id="chart-${def.key}" height="120"></canvas>
+      `;
+            grid.appendChild(wrap);
+            const canvas = wrap.querySelector(`#chart-${def.key}`);
+            this.sizeCanvas(canvas);
+            this.canvases[def.key] = canvas;
+            this.nowEls = this.nowEls || {};
+            this.nowEls[def.key] = wrap.querySelector(`#cv-${def.key}`);
+          }
+        }
+        sizeCanvas(canvas) {
+          const dpr = Math.min(window.devicePixelRatio || 1, 2);
+          const rect = canvas.getBoundingClientRect();
+          const w = rect.width || canvas.parentElement.clientWidth || 300;
+          canvas.width = Math.max(50, Math.floor(w * dpr));
+          canvas.height = Math.floor(120 * dpr);
+          canvas.style.height = "120px";
+          canvas._dpr = dpr;
+          canvas._w = w;
+        }
+        update(vehicle) {
+          const hist = vehicle.sim.history;
+          for (const def of CHART_DEFS) {
+            const canvas = this.canvases[def.key];
+            if (!canvas) continue;
+            const dpr = canvas._dpr || 1;
+            const ctx = canvas.getContext("2d");
+            const W = canvas.width;
+            const H = canvas.height;
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            const w = canvas._w || W / dpr;
+            const h = 120;
+            ctx.clearRect(0, 0, w, h);
+            const series = hist.map((p) => p[def.key]);
+            const latest = series.length ? series[series.length - 1] : 0;
+            if (this.nowEls[def.key]) this.nowEls[def.key].textContent = def.fmt(latest);
+            ctx.fillStyle = "rgba(10,18,34,0.55)";
+            ctx.fillRect(0, 0, w, h);
+            ctx.strokeStyle = "rgba(80,110,160,0.16)";
+            ctx.lineWidth = 1;
+            for (let i = 1; i < 4; i++) {
+              const y = h / 4 * i;
+              ctx.beginPath();
+              ctx.moveTo(0, y);
+              ctx.lineTo(w, y);
+              ctx.stroke();
+            }
+            const xFor = (i) => i / (series.length - 1 || 1) * w;
+            const yFor = (v) => h - (clamp(v, def.min, def.max) - def.min) / (def.max - def.min) * h;
+            const [w1, w2] = def.warn;
+            const bandY = Math.min(yFor(Math.max(w1, w2)), yFor(Math.min(w1, w2)));
+            const bandH = Math.abs(yFor(w1) - yFor(w2));
+            ctx.fillStyle = "rgba(251,191,36,0.10)";
+            ctx.fillRect(0, bandY, w, Math.max(bandH, 2));
+            if (series.length > 1) {
+              const grad = ctx.createLinearGradient(0, 0, 0, h);
+              grad.addColorStop(0, hexToRgba(def.color, 0.32));
+              grad.addColorStop(1, hexToRgba(def.color, 0.02));
+              ctx.beginPath();
+              ctx.moveTo(0, h);
+              for (let i = 0; i < series.length; i++) ctx.lineTo(xFor(i), yFor(series[i]));
+              ctx.lineTo(w, h);
+              ctx.closePath();
+              ctx.fillStyle = grad;
+              ctx.fill();
+              ctx.beginPath();
+              for (let i = 0; i < series.length; i++) {
+                const x = xFor(i), y = yFor(series[i]);
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+              }
+              ctx.strokeStyle = def.color;
+              ctx.lineWidth = 1.8;
+              ctx.shadowColor = def.color;
+              ctx.shadowBlur = 6;
+              ctx.stroke();
+              ctx.shadowBlur = 0;
+            }
+            if (series.length) {
+              const x = xFor(series.length - 1);
+              const y = yFor(latest);
+              ctx.beginPath();
+              ctx.arc(x, y, 3.2, 0, Math.PI * 2);
+              ctx.fillStyle = "#fff";
+              ctx.fill();
+              ctx.beginPath();
+              ctx.arc(x, y, 5.5, 0, Math.PI * 2);
+              ctx.fillStyle = hexToRgba(def.color, 0.25);
+              ctx.fill();
+            }
+            ctx.fillStyle = "rgba(139,163,199,0.75)";
+            ctx.font = '10px "JetBrains Mono", monospace';
+            ctx.textAlign = "left";
+            ctx.fillText(`${def.max}`, 4, 10);
+            ctx.fillText(`${def.min}`, 4, h - 4);
+          }
+        }
+      };
+    }
+  });
+
+  // js/components/AIAnalysis.js
+  function hexA(hex, alpha) {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return `rgba(${r},${g},${b},${alpha})`;
+  }
+  var AIAnalysis;
+  var init_AIAnalysis = __esm({
+    "js/components/AIAnalysis.js"() {
+      init_math();
+      AIAnalysis = class {
+        constructor(container, app) {
+          this.el = container;
+          this.app = app;
+          this.particles = [];
+          this.angle = 0;
+          this.analyzing = false;
+          this.render();
+          this.initCoreCanvas();
+        }
+        render() {
+          this.el.innerHTML = `
+      <div class="panel ai-panel">
+        <div class="panel-head">
+          <h2 class="panel-title">\u{1F9E0} AI Vehicle Analysis</h2>
+          <span class="ai-state-chip"><span class="ai-state-dot"></span>AI ENGINE ACTIVE</span>
+        </div>
+
+        <div class="ai-body">
+          <div class="ai-core-wrap">
+            <canvas class="ai-core" id="ai-core-canvas" width="170" height="170"></canvas>
+            <div class="ai-core-center">
+              <div class="ai-core-icon">\u{1F9E0}</div>
+              <div class="ai-core-health mono" id="ai-core-health">--</div>
+            </div>
+          </div>
+          <div class="ai-verdict" id="ai-verdict">Initializing AI engine\u2026</div>
+        </div>
+
+        <div class="ai-section">
+          <div class="ai-section-title">DETECTED PATTERNS</div>
+          <div class="ai-patterns" id="ai-patterns">
+            <div class="ai-empty">No abnormal patterns detected</div>
+          </div>
+        </div>
+
+        <div class="ai-section">
+          <div class="ai-section-title">RECOMMENDED ACTION</div>
+          <div class="ai-actions" id="ai-actions"></div>
+        </div>
+      </div>
+    `;
+          this.coreCanvas = this.el.querySelector("#ai-core-canvas");
+          this.coreHealth = this.el.querySelector("#ai-core-health");
+          this.verdictEl = this.el.querySelector("#ai-verdict");
+          this.patternsEl = this.el.querySelector("#ai-patterns");
+          this.actionsEl = this.el.querySelector("#ai-actions");
+        }
+        initCoreCanvas() {
+          const dpr = Math.min(window.devicePixelRatio || 1, 2);
+          this.coreCanvas.width = 170 * dpr;
+          this.coreCanvas.height = 170 * dpr;
+          this.coreCanvas._dpr = dpr;
+          for (let i = 0; i < 26; i++) {
+            this.particles.push({
+              a: Math.random() * Math.PI * 2,
+              r: 30 + Math.random() * 60,
+              speed: 0.15 + Math.random() * 0.4,
+              size: 0.6 + Math.random() * 1.6
+            });
+          }
+        }
+        drawCore(now, band) {
+          const ctx = this.coreCanvas.getContext("2d");
+          const dpr = this.coreCanvas._dpr || 1;
+          const W = 170, H = 170;
+          ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+          ctx.clearRect(0, 0, W, H);
+          const cx = W / 2, cy = H / 2;
+          const color = band === "critical" ? "#f87171" : band === "attention" ? "#fbbf24" : "#22d3ee";
+          this.angle += 6e-3;
+          const glow = ctx.createRadialGradient(cx, cy, 8, cx, cy, 80);
+          glow.addColorStop(0, hexA(color, 0.28));
+          glow.addColorStop(1, hexA(color, 0));
+          ctx.fillStyle = glow;
+          ctx.beginPath();
+          ctx.arc(cx, cy, 80, 0, Math.PI * 2);
+          ctx.fill();
+          for (let i = 0; i < 2; i++) {
+            ctx.strokeStyle = hexA(color, 0.35 - i * 0.12);
+            ctx.lineWidth = 1.2;
+            ctx.beginPath();
+            ctx.ellipse(cx, cy, 58 - i * 14, 58 - i * 14, this.angle * (i % 2 === 0 ? 1 : -0.7) + i * 0.6, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.strokeStyle = hexA(color, 0.8);
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.ellipse(cx, cy, 58 - i * 14, 58 - i * 14, this.angle * (i % 2 === 0 ? 1 : -0.7) + i * 0.6, -0.6, 0.5);
+            ctx.stroke();
+          }
+          const coreGrad = ctx.createRadialGradient(cx, cy, 2, cx, cy, 22);
+          coreGrad.addColorStop(0, "#eaffff");
+          coreGrad.addColorStop(0.35, color);
+          coreGrad.addColorStop(1, hexA(color, 0.1));
+          ctx.fillStyle = coreGrad;
+          ctx.beginPath();
+          ctx.arc(cx, cy, 22 + Math.sin(now / 600) * 1.6, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = hexA(color, 0.7);
+          for (const p of this.particles) {
+            p.a += p.speed * 0.016;
+            const x = cx + Math.cos(p.a) * p.r;
+            const y = cy + Math.sin(p.a) * p.r * 0.8;
+            ctx.globalAlpha = 0.35 + 0.5 * Math.sin(now / 400 + p.a * 3);
+            ctx.beginPath();
+            ctx.arc(x, y, p.size, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          ctx.globalAlpha = 1;
+        }
+        update(vehicle, now) {
+          const a = vehicle.analysis;
+          const band = a ? a.band : "HEALTHY";
+          this.drawCore(now, band);
+          if (!a) {
+            this.coreHealth.textContent = "--";
+            return;
+          }
+          this.coreHealth.textContent = a.healthScore;
+          const summary = a.summary || [];
+          const verdict = summary.length ? summary.join(" ") : "Normal vehicle behaviour";
+          if (this.verdictEl.textContent !== verdict) {
+            this.verdictEl.innerHTML = "";
+            this.verdictEl.textContent = verdict;
+          }
+          let pHtml;
+          if (a.detectedPatterns.length === 0) {
+            pHtml = '<div class="ai-empty">\u2713 No abnormal patterns detected</div>';
+          } else {
+            pHtml = a.detectedPatterns.map((p) => `
+        <div class="ai-pattern sev-${(p.severity || "medium").toLowerCase()}">
+          <span class="ai-pattern-icon">${p.severity === "HIGH" ? "\u{1F534}" : "\u26A0"}</span>
+          <span>${p.label}</span>
+        </div>`).join("");
+          }
+          if (this.patternsEl.innerHTML !== pHtml) this.patternsEl.innerHTML = pHtml;
+          const aHtml = (a.recommendations || []).map((r, i) => `
+      <div class="ai-action">${i === 0 ? "\u2192" : "\xB7"} ${r}</div>`).join("");
+          if (this.actionsEl.innerHTML !== aHtml) this.actionsEl.innerHTML = aHtml;
+        }
+      };
+    }
+  });
+
+  // js/components/EventTimeline.js
+  var EventTimeline;
+  var init_EventTimeline = __esm({
+    "js/components/EventTimeline.js"() {
+      EventTimeline = class {
+        constructor(container, app) {
+          this.el = container;
+          this.app = app;
+          this.render();
+        }
+        render() {
+          this.el.innerHTML = `
+      <div class="panel timeline-panel">
+        <div class="panel-head">
+          <h2 class="panel-title">\u{1F4DC} AI Event Timeline</h2>
+          <span class="panel-sub">live</span>
+        </div>
+        <div class="timeline-list" id="timeline-list">
+          <div class="timeline-empty">Awaiting simulation events\u2026</div>
+        </div>
+      </div>
+    `;
+          this.list = this.el.querySelector("#timeline-list");
+        }
+        update() {
+          const events = this.app.ai.timeline;
+          if (events.length === 0) {
+            if (this.list.innerHTML !== '<div class="timeline-empty">Awaiting simulation events\u2026</div>') {
+              this.list.innerHTML = '<div class="timeline-empty">Awaiting simulation events\u2026</div>';
+            }
+            return;
+          }
+          let html = "";
+          for (const e of events) {
+            html += `
+        <div class="timeline-entry lvl-${e.level}">
+          <span class="timeline-time mono">${e.time}</span>
+          <span class="timeline-icon">${e.icon}</span>
+          <span class="timeline-text">${e.text}</span>
+        </div>`;
+          }
+          if (this.list.innerHTML !== html) this.list.innerHTML = html;
+        }
+      };
+    }
+  });
+
+  // js/components/AlertCenter.js
+  var AlertCenter;
+  var init_AlertCenter = __esm({
+    "js/components/AlertCenter.js"() {
+      AlertCenter = class {
+        constructor(container, app) {
+          this.el = container;
+          this.app = app;
+          this.render();
+        }
+        render() {
+          this.el.innerHTML = `
+      <div class="panel alert-center-panel">
+        <div class="panel-head">
+          <h2 class="panel-title">\u{1F514} Notification Center</h2>
+          <span class="panel-sub" id="ac-count">0 alerts</span>
+        </div>
+        <div class="ac-list" id="ac-list">
+          <div class="ac-empty">No alerts yet \u2014 all vehicles operating normally</div>
+        </div>
+      </div>
+    `;
+          this.list = this.el.querySelector("#ac-list");
+          this.count = this.el.querySelector("#ac-count");
+        }
+        update() {
+          const notifs = this.app.alertService.notifications;
+          this.count.textContent = `${notifs.length} alert${notifs.length === 1 ? "" : "s"}`;
+          if (notifs.length === 0) {
+            if (this.list.innerHTML !== '<div class="ac-empty">No alerts yet \u2014 all vehicles operating normally</div>') {
+              this.list.innerHTML = '<div class="ac-empty">No alerts yet \u2014 all vehicles operating normally</div>';
+            }
+            return;
+          }
+          let html = "";
+          for (const n of notifs) {
+            html += `
+        <div class="ac-entry lvl-${n.level}">
+          <div class="ac-head">
+            <span class="ac-title">${n.level === "critical" ? "\u{1F534}" : n.level === "warning" ? "\u26A0" : "\u2705"} ${n.title}</span>
+            <span class="ac-time mono">${n.time}</span>
+          </div>
+          <div class="ac-body">${n.message}</div>
+          <div class="ac-foot">
+            <span class="ac-kv">Health <b class="mono">${n.health}/100</b></span>
+            <span class="ac-kv">Risk <b class="mono">${n.risk}</b></span>
+            <span class="ac-kv">\u2192 ${n.recommendation}</span>
+          </div>
+        </div>`;
+          }
+          if (this.list.innerHTML !== html) this.list.innerHTML = html;
+        }
+      };
+    }
+  });
+
+  // js/components/WhatsAppPreview.js
+  var WhatsAppPreview;
+  var init_WhatsAppPreview = __esm({
+    "js/components/WhatsAppPreview.js"() {
+      init_math();
+      WhatsAppPreview = class {
+        constructor(container, app) {
+          this.el = container;
+          this.app = app;
+          this.render();
+        }
+        render() {
+          this.el.innerHTML = `
+      <div class="panel wa-panel">
+        <div class="panel-head">
+          <h2 class="panel-title">\u{1F4AC} Alert Preview</h2>
+          <span class="panel-sub">WhatsApp-style \xB7 simulated</span>
+        </div>
+        <div class="wa-phone">
+          <div class="wa-header">
+            <div class="wa-avatar">\u{1F69B}</div>
+            <div class="wa-header-text">
+              <span class="wa-contact">TRUCKPULSE</span>
+              <span class="wa-status">online</span>
+            </div>
+            <span class="wa-more">\u22EE</span>
+          </div>
+          <div class="wa-chat">
+            <div class="wa-date">SIMULATED ALERT</div>
+            <div class="wa-bubble" id="wa-bubble">
+              <div class="wa-bubble-title" id="wa-title">\u26A0 Vehicle Health Alert</div>
+              <div class="wa-row">Vehicle: <b class="mono" id="wa-vehicle">\u2014</b></div>
+              <div class="wa-row">Health: <b class="mono" id="wa-health">--/100</b></div>
+              <div class="wa-row">Issue: <span id="wa-issue">\u2014</span></div>
+              <div class="wa-row">Risk: <b id="wa-risk">\u2014</b></div>
+              <div class="wa-row">Recommendation: <span id="wa-reco">\u2014</span></div>
+              <div class="wa-time mono" id="wa-time">--:--:--</div>
+            </div>
+            <div class="wa-note">No active alert \u2014 the fleet is healthy.</div>
+          </div>
+          <div class="wa-input-bar"><span>Type a message</span><span class="wa-send">\u27A4</span></div>
+        </div>
+      </div>
+    `;
+          this.bubble = this.el.querySelector("#wa-bubble");
+          this.title = this.el.querySelector("#wa-title");
+          this.vehicle = this.el.querySelector("#wa-vehicle");
+          this.health = this.el.querySelector("#wa-health");
+          this.issue = this.el.querySelector("#wa-issue");
+          this.risk = this.el.querySelector("#wa-risk");
+          this.reco = this.el.querySelector("#wa-reco");
+          this.time = this.el.querySelector("#wa-time");
+          this.note = this.el.querySelector(".wa-note");
+        }
+        update(vehicle) {
+          const alert = this.app.alertService.active;
+          const a = vehicle.analysis;
+          if (alert) {
+            this.bubble.classList.remove("idle");
+            this.bubble.classList.add(`lvl-${alert.level}`);
+            this.title.textContent = alert.level === "critical" ? "\u{1F534} Critical Vehicle Alert" : "\u26A0 Vehicle Health Alert";
+            this.vehicle.textContent = vehicle.name + " \xB7 " + (vehicle.plate || "");
+            this.health.textContent = `${alert.health}/100`;
+            this.issue.textContent = alert.message;
+            this.risk.textContent = alert.risk;
+            this.reco.textContent = alert.recommendation;
+            this.time.textContent = alert.time;
+            this.note.style.display = "none";
+          } else {
+            this.bubble.classList.add("idle");
+            this.bubble.classList.remove("lvl-critical", "lvl-warning");
+            this.title.textContent = "\u2705 Vehicle Health OK";
+            this.vehicle.textContent = vehicle.name + " \xB7 " + (vehicle.plate || "");
+            this.health.textContent = `${a ? a.healthScore : "--"}/100`;
+            this.issue.textContent = "No abnormal patterns detected.";
+            this.risk.textContent = a ? a.riskLevel : "\u2014";
+            this.reco.textContent = "Continue monitoring";
+            this.time.textContent = fmtTime();
+            this.note.style.display = "";
+          }
+        }
+      };
+    }
+  });
+
+  // js/components/Toasts.js
+  var Toasts;
+  var init_Toasts = __esm({
+    "js/components/Toasts.js"() {
+      Toasts = class {
+        constructor(stackEl) {
+          this.stack = stackEl;
+          this.count = 0;
+        }
+        show(alert) {
+          this.count += 1;
+          const id = `toast-${Date.now()}-${this.count}`;
+          const el = document.createElement("div");
+          el.className = `toast lvl-${alert.level}`;
+          el.id = id;
+          el.innerHTML = `
+      <div class="toast-icon">${alert.level === "critical" ? "\u{1F534}" : "\u26A0"}</div>
+      <div class="toast-body">
+        <div class="toast-title">${alert.level === "critical" ? "CRITICAL VEHICLE ALERT" : "VEHICLE HEALTH WARNING"}</div>
+        <div class="toast-msg">${alert.message}</div>
+        <div class="toast-meta">
+          <span>Health <b class="mono">${alert.health}/100</b></span>
+          <span>Risk <b>${alert.risk}</b></span>
+          <span>\u2192 ${alert.recommendation}</span>
+        </div>
+      </div>
+      <button class="toast-close" aria-label="Dismiss">\u2715</button>
+    `;
+          this.stack.appendChild(el);
+          const remove = () => {
+            el.classList.add("out");
+            setTimeout(() => el.remove(), 400);
+          };
+          el.querySelector(".toast-close").addEventListener("click", remove);
+          setTimeout(remove, 7e3);
+        }
+        showInfo(text, icon = "\u2139") {
+          this.count += 1;
+          const el = document.createElement("div");
+          el.className = "toast lvl-info";
+          el.innerHTML = `
+      <div class="toast-icon">${icon}</div>
+      <div class="toast-body">
+        <div class="toast-title">${text}</div>
+      </div>
+      <button class="toast-close">\u2715</button>
+    `;
+          this.stack.appendChild(el);
+          const remove = () => {
+            el.classList.add("out");
+            setTimeout(() => el.remove(), 400);
+          };
+          el.querySelector(".toast-close").addEventListener("click", remove);
+          setTimeout(remove, 4500);
+        }
+      };
+    }
+  });
+
+  // js/components/FleetMap.js
+  var TRUCK_ROUTES, FleetMap;
+  var init_FleetMap = __esm({
+    "js/components/FleetMap.js"() {
+      init_config();
+      TRUCK_ROUTES = {
+        "truck-01": [
+          [13.0827, 80.2707],
+          // Chennai
+          [13.085, 80.26],
+          [13.09, 80.25],
+          [13.095, 80.24],
+          [13.1, 80.23],
+          [13.11, 80.22],
+          [13.12, 80.21],
+          [13.14, 80.2],
+          [13.16, 80.18],
+          [13.18, 80.16],
+          [13.2, 80.14],
+          [13.22, 80.12],
+          [13.24, 80.1],
+          [13.26, 80.08],
+          [13.28, 80.06],
+          [13.3, 80.04],
+          [13.32, 80.02],
+          [13.34, 80],
+          [13.36, 79.98],
+          [13.38, 79.96],
+          [13.4, 79.94],
+          [13.42, 79.92],
+          [13.44, 79.9],
+          [13.46, 79.88],
+          [13.48, 79.86],
+          [13.5, 79.84],
+          [13.52, 79.82],
+          [13.54, 79.8],
+          [13.56, 79.78],
+          [13.58, 79.76],
+          [13.6, 79.74],
+          [13.62, 79.72],
+          [13.64, 79.7],
+          [13.66, 79.68],
+          [13.68, 79.66],
+          [13.7, 79.64],
+          [13.72, 79.62],
+          [13.74, 79.6],
+          [13.76, 79.58],
+          [13.78, 79.56]
+        ],
+        "truck-02": [
+          [12.9716, 77.5946],
+          // Bangalore
+          [12.975, 77.6],
+          [12.98, 77.605],
+          [12.985, 77.61],
+          [12.99, 77.62],
+          [13, 77.63],
+          [13.01, 77.64],
+          [13.02, 77.65],
+          [13.03, 77.66],
+          [13.04, 77.67],
+          [13.05, 77.68],
+          [13.06, 77.69],
+          [13.07, 77.7],
+          [13.08, 77.71],
+          [13.09, 77.72],
+          [13.1, 77.73],
+          [13.11, 77.74],
+          [13.12, 77.75],
+          [13.13, 77.76],
+          [13.14, 77.77],
+          [13.15, 77.78],
+          [13.16, 77.79],
+          [13.17, 77.8],
+          [13.18, 77.81],
+          [13.19, 77.82],
+          [13.2, 77.83],
+          [13.21, 77.84],
+          [13.22, 77.85],
+          [13.23, 77.86],
+          [13.24, 77.87]
+        ],
+        "truck-03": [
+          [19.076, 72.8777],
+          // Mumbai
+          [19.08, 72.88],
+          [19.085, 72.89],
+          [19.09, 72.9],
+          [19.1, 72.91],
+          [19.11, 72.92],
+          [19.12, 72.93],
+          [19.13, 72.94],
+          [19.14, 72.95],
+          [19.15, 72.96],
+          [19.16, 72.97],
+          [19.17, 72.98],
+          [19.18, 72.99],
+          [19.19, 73],
+          [19.2, 73.01],
+          [19.21, 73.02],
+          [19.22, 73.03],
+          [19.23, 73.04],
+          [19.24, 73.05],
+          [19.25, 73.06]
+        ],
+        "truck-04": [
+          [28.6139, 77.209],
+          // Delhi
+          [28.617, 77.215],
+          [28.62, 77.22],
+          [28.625, 77.23],
+          [28.63, 77.24],
+          [28.635, 77.25],
+          [28.64, 77.26],
+          [28.645, 77.27],
+          [28.65, 77.28],
+          [28.655, 77.29],
+          [28.66, 77.3],
+          [28.665, 77.31],
+          [28.67, 77.32],
+          [28.675, 77.33],
+          [28.68, 77.34],
+          [28.685, 77.35],
+          [28.69, 77.36],
+          [28.695, 77.37],
+          [28.7, 77.38],
+          [28.705, 77.39]
+        ],
+        "truck-05": [
+          [22.5726, 88.3639],
+          // Kolkata
+          [22.576, 88.37],
+          [22.58, 88.38],
+          [22.585, 88.39],
+          [22.59, 88.4],
+          [22.595, 88.41],
+          [22.6, 88.42],
+          [22.605, 88.43],
+          [22.61, 88.44],
+          [22.615, 88.45],
+          [22.62, 88.46],
+          [22.625, 88.47],
+          [22.63, 88.48],
+          [22.635, 88.49],
+          [22.64, 88.5],
+          [22.645, 88.51],
+          [22.65, 88.52],
+          [22.655, 88.53],
+          [22.66, 88.54],
+          [22.665, 88.55]
+        ],
+        "truck-06": [
+          [17.385, 78.4867],
+          // Hyderabad
+          [17.39, 78.495],
+          [17.395, 78.505],
+          [17.4, 78.515],
+          [17.41, 78.525],
+          [17.42, 78.535],
+          [17.43, 78.545],
+          [17.44, 78.555],
+          [17.45, 78.565],
+          [17.46, 78.575],
+          [17.47, 78.585],
+          [17.48, 78.595],
+          [17.49, 78.605],
+          [17.5, 78.615],
+          [17.51, 78.625],
+          [17.52, 78.635],
+          [17.53, 78.645],
+          [17.54, 78.655],
+          [17.55, 78.665],
+          [17.56, 78.675]
+        ]
+      };
+      FleetMap = class {
+        constructor(container, app) {
+          this.el = container;
+          this.app = app;
+          this.map = null;
+          this.markers = {};
+          this.routeLines = {};
+          this.routeProgress = {};
+          this.tileLoaded = false;
+          this.visible = false;
+          this.render();
+        }
+        render() {
+          this.el.innerHTML = `
+      <div class="panel map-panel">
+        <div class="panel-head">
+          <h2 class="panel-title">\u{1F5FA}\uFE0F Fleet Map</h2>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <span class="panel-sub" id="map-count">5 vehicles tracked</span>
+            <button class="map-toggle-btn" id="map-toggle" title="Toggle map view">
+              <span id="map-toggle-icon">\u25B6</span>
+            </button>
+          </div>
+        </div>
+        <div class="map-container" id="map-container" style="display:none;">
+          <div id="fleet-map" style="width:100%; height:380px; border-radius:10px;"></div>
+          <div class="map-legend">
+            <span class="legend-item"><span class="legend-dot" style="background:#34d399;"></span> Healthy</span>
+            <span class="legend-item"><span class="legend-dot" style="background:#fbbf24;"></span> Attention</span>
+            <span class="legend-item"><span class="legend-dot" style="background:#f87171;"></span> Critical</span>
+            <span class="legend-item"><span class="legend-dot" style="background:#22d3ee;"></span> Selected</span>
+          </div>
+        </div>
+      </div>
+    `;
+          for (const t of FLEET) {
+            this.routeProgress[t.id] = 0;
+          }
+          this.el.querySelector("#map-toggle").addEventListener("click", () => this.toggle());
+        }
+        toggle() {
+          this.visible = !this.visible;
+          const container = this.el.querySelector("#map-container");
+          const icon = this.el.querySelector("#map-toggle-icon");
+          if (this.visible) {
+            container.style.display = "block";
+            icon.textContent = "\u25BC";
+            if (!this.map) this.initMap();
+            setTimeout(() => this.map && this.map.invalidateSize(), 100);
+          } else {
+            container.style.display = "none";
+            icon.textContent = "\u25B6";
+          }
+        }
+        initMap() {
+          if (typeof L === "undefined") {
+            console.warn("Leaflet not loaded yet, retrying...");
+            setTimeout(() => this.initMap(), 200);
+            return;
+          }
+          this.map = L.map("fleet-map", {
+            zoomControl: true,
+            attributionControl: false
+          }).setView([20.5, 78.9], 5);
+          L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
+            attribution: '&copy; <a href="https://carto.com/">CARTO</a> &copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>',
+            maxZoom: 19,
+            subdomains: "abcd"
+          }).addTo(this.map);
+          L.control.attribution({ position: "bottomright", prefix: "" }).addAttribution('\xA9 <a href="https://carto.com/">CARTO</a>').addTo(this.map);
+          for (const truck of this.app.trucks) {
+            this.addTruckMarker(truck);
+          }
+          this.tileLoaded = true;
+        }
+        addTruckMarker(truck) {
+          const route = TRUCK_ROUTES[truck.id] || TRUCK_ROUTES["truck-01"];
+          const startIdx = Math.floor(Math.random() * Math.max(1, route.length - 10));
+          this.routeProgress[truck.id] = startIdx;
+          const pos = route[startIdx];
+          const icon = L.divIcon({
+            className: "truck-marker",
+            html: `<div class="marker-inner" data-id="${truck.id}">
+        <span class="marker-emoji">\u{1F69B}</span>
+        <span class="marker-label">${truck.name}</span>
+      </div>`,
+            iconSize: [40, 32],
+            iconAnchor: [20, 32]
+          });
+          const marker = L.marker(pos, { icon }).addTo(this.map);
+          this.markers[truck.id] = marker;
+          const trailColor = truck.id === "truck-04" ? "#f87171" : truck.id === "truck-03" ? "#fbbf24" : "#34d399";
+          const trail = L.polyline([pos], {
+            color: trailColor,
+            weight: 2.5,
+            opacity: 0.6,
+            dashArray: "6 4"
+          }).addTo(this.map);
+          this.routeLines[truck.id] = { trail, visited: [pos] };
+          const popupHtml = this.buildPopup(truck);
+          marker.bindPopup(popupHtml, {
+            className: "truck-popup",
+            maxWidth: 260,
+            offset: [0, -10]
+          });
+          marker.on("click", () => {
+            this.app.selectTruck(truck.id);
+          });
+        }
+        buildPopup(truck) {
+          const a = truck.analysis;
+          const health = a ? a.healthScore : "--";
+          const band = a ? a.band : "HEALTHY";
+          const risk = a ? a.riskLevel : "LOW";
+          const scenario = truck.sim.scenarioKey.replace(/_/g, " ");
+          const speed = Math.round(truck.sim.state.speed);
+          const temp = Math.round(truck.sim.state.coolantTemp);
+          const bandColor2 = band === "CRITICAL" ? "#f87171" : band === "ATTENTION" ? "#fbbf24" : "#34d399";
+          return `
+      <div class="popup-content">
+        <div class="popup-header">
+          <span class="popup-icon">\u{1F69B}</span>
+          <div>
+            <div class="popup-name">${truck.name}</div>
+            <div class="popup-plate mono">${truck.plate}</div>
+          </div>
+        </div>
+        <div class="popup-stats">
+          <div class="popup-stat">
+            <span class="popup-stat-label">Health</span>
+            <span class="popup-stat-val" style="color:${bandColor2}">${health}/100</span>
+          </div>
+          <div class="popup-stat">
+            <span class="popup-stat-label">Status</span>
+            <span class="popup-stat-val" style="color:${bandColor2}">${band}</span>
+          </div>
+          <div class="popup-stat">
+            <span class="popup-stat-label">Speed</span>
+            <span class="popup-stat-val">${speed} km/h</span>
+          </div>
+          <div class="popup-stat">
+            <span class="popup-stat-label">Temp</span>
+            <span class="popup-stat-val">${temp}\xB0C</span>
+          </div>
+        </div>
+        <div class="popup-scenario">Scenario: ${scenario}</div>
+      </div>
+    `;
+        }
+        update() {
+          if (!this.visible || !this.map) return;
+          for (const truck of this.app.trucks) {
+            const route = TRUCK_ROUTES[truck.id];
+            if (!route) continue;
+            this.routeProgress[truck.id] = (this.routeProgress[truck.id] + 0.15) % route.length;
+            const idx = Math.floor(this.routeProgress[truck.id]);
+            const frac = this.routeProgress[truck.id] - idx;
+            const nextIdx = (idx + 1) % route.length;
+            const lat = route[idx][0] + (route[nextIdx][0] - route[idx][0]) * frac;
+            const lng = route[idx][1] + (route[nextIdx][1] - route[idx][1]) * frac;
+            const marker = this.markers[truck.id];
+            if (marker) {
+              marker.setLatLng([lat, lng]);
+              const popupHtml = this.buildPopup(truck);
+              if (marker.getPopup() && marker.getPopup().isOpen()) {
+                marker.getPopup().setContent(popupHtml);
+              }
+              const a = truck.analysis;
+              const band = a ? a.band : "HEALTHY";
+              const isActive = truck.id === this.app.activeTruckId;
+              const dotColor = isActive ? "#22d3ee" : band === "CRITICAL" ? "#f87171" : band === "ATTENTION" ? "#fbbf24" : "#34d399";
+              const icon = L.divIcon({
+                className: "truck-marker",
+                html: `<div class="marker-inner ${isActive ? "marker-active" : ""}" data-id="${truck.id}">
+            <span class="marker-dot" style="background:${dotColor};box-shadow:0 0 8px ${dotColor}"></span>
+            <span class="marker-emoji">\u{1F69B}</span>
+            <span class="marker-label">${truck.name}</span>
+          </div>`,
+                iconSize: [40, 32],
+                iconAnchor: [20, 32]
+              });
+              marker.setIcon(icon);
+            }
+            const rl = this.routeLines[truck.id];
+            if (rl) {
+              rl.visited.push([lat, lng]);
+              if (rl.visited.length > 80) rl.visited.shift();
+              rl.trail.setLatLngs(rl.visited);
+            }
+          }
+        }
+      };
+    }
+  });
+
+  // js/components/AnalysisDashboard.js
+  function hexToRgba2(hex, alpha) {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return `rgba(${r},${g},${b},${alpha})`;
+  }
+  var AnalysisDashboard;
+  var init_AnalysisDashboard = __esm({
+    "js/components/AnalysisDashboard.js"() {
+      init_math();
+      AnalysisDashboard = class {
+        constructor(container, app) {
+          this.el = container;
+          this.app = app;
+          this.visible = false;
+          this.fuelHistory = {};
+          this.maintPredictions = {};
+          this.render();
+          this.initFuelHistory();
+        }
+        initFuelHistory() {
+          for (const t of this.app.trucks) {
+            this.fuelHistory[t.id] = [];
+          }
+        }
+        render() {
+          this.el.innerHTML = `
+      <div class="panel analysis-panel">
+        <div class="panel-head">
+          <h2 class="panel-title">\u{1F4CA} Fleet Analytics</h2>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <button class="map-toggle-btn" id="analysis-toggle" title="Toggle analysis">
+              <span id="analysis-toggle-icon">\u25B6</span>
+            </button>
+          </div>
+        </div>
+        <div class="analysis-container" id="analysis-container" style="display:none;">
+          <!-- Fleet Summary -->
+          <div class="analysis-section">
+            <div class="analysis-section-title">FLEET SUMMARY</div>
+            <div class="fleet-summary-grid" id="fleet-summary-grid"></div>
+          </div>
+
+          <!-- Per-Truck Analysis Table -->
+          <div class="analysis-section">
+            <div class="analysis-section-title">VEHICLE COMPARISON</div>
+            <div class="table-wrap">
+              <table class="analysis-table" id="truck-table">
+                <thead>
+                  <tr>
+                    <th>Vehicle</th>
+                    <th>Health</th>
+                    <th>Status</th>
+                    <th>Speed</th>
+                    <th>Temp</th>
+                    <th>Volt</th>
+                    <th>Vib</th>
+                    <th>Fuel</th>
+                  </tr>
+                </thead>
+                <tbody id="truck-table-body"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Fuel Consumption Chart -->
+          <div class="analysis-section">
+            <div class="analysis-section-title">FUEL CONSUMPTION TRACKER</div>
+            <div class="fuel-chart-wrap">
+              <canvas id="fuel-chart" height="140"></canvas>
+            </div>
+            <div class="fuel-stats" id="fuel-stats"></div>
+          </div>
+
+          <!-- Maintenance Predictions -->
+          <div class="analysis-section">
+            <div class="analysis-section-title">MAINTENANCE PREDICTIONS</div>
+            <div class="maint-grid" id="maint-grid"></div>
+          </div>
+
+          <!-- Health Distribution -->
+          <div class="analysis-section">
+            <div class="analysis-section-title">HEALTH DISTRIBUTION</div>
+            <div class="health-dist-wrap">
+              <canvas id="health-dist-chart" height="120"></canvas>
+            </div>
+          </div>
+
+          <!-- Export Button -->
+          <div class="analysis-section" style="text-align:center;">
+            <button class="export-btn" id="export-report">
+              <span>\u{1F4E5}</span> Export Report (CSV)
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+          this.el.querySelector("#analysis-toggle").addEventListener("click", () => this.toggle());
+          this.el.querySelector("#export-report").addEventListener("click", () => this.exportReport());
+        }
+        toggle() {
+          this.visible = !this.visible;
+          const container = this.el.querySelector("#analysis-container");
+          const icon = this.el.querySelector("#analysis-toggle-icon");
+          if (this.visible) {
+            container.style.display = "block";
+            icon.textContent = "\u25BC";
+            this.updateAnalysis();
+          } else {
+            container.style.display = "none";
+            icon.textContent = "\u25B6";
+          }
+        }
+        updateAnalysis() {
+          if (!this.visible) return;
+          this.updateSummary();
+          this.updateTable();
+          this.updateFuelChart();
+          this.updateMaintPredictions();
+          this.updateHealthDistChart();
+        }
+        updateSummary() {
+          const trucks = this.app.trucks;
+          let totalHealth = 0, healthy = 0, attention = 0, critical = 0;
+          let avgSpeed = 0, avgTemp = 0;
+          for (const t of trucks) {
+            const a = t.analysis;
+            if (a) {
+              totalHealth += a.healthScore;
+              if (a.band === "HEALTHY") healthy++;
+              else if (a.band === "ATTENTION") attention++;
+              else critical++;
+            }
+            avgSpeed += t.sim.state.speed;
+            avgTemp += t.sim.state.coolantTemp;
+          }
+          const n = trucks.length;
+          const avgHealth = n ? Math.round(totalHealth / n) : 0;
+          avgSpeed = n ? Math.round(avgSpeed / n) : 0;
+          avgTemp = n ? round1(avgTemp / n) : 0;
+          const grid = this.el.querySelector("#fleet-summary-grid");
+          grid.innerHTML = `
+      <div class="summary-card">
+        <div class="summary-icon">\u{1F69B}</div>
+        <div class="summary-val">${n}</div>
+        <div class="summary-label">Total Vehicles</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-icon">\u{1F49A}</div>
+        <div class="summary-val" style="color:var(--ok)">${healthy}</div>
+        <div class="summary-label">Healthy</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-icon">\u{1F49B}</div>
+        <div class="summary-val" style="color:var(--warn)">${attention}</div>
+        <div class="summary-label">Attention</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-icon">\u2764\uFE0F</div>
+        <div class="summary-val" style="color:var(--bad)">${critical}</div>
+        <div class="summary-label">Critical</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-icon">\u{1F4CA}</div>
+        <div class="summary-val">${avgHealth}</div>
+        <div class="summary-label">Avg Health</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-icon">\u26A1</div>
+        <div class="summary-val">${avgSpeed}</div>
+        <div class="summary-label">Avg Speed km/h</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-icon">\u{1F321}\uFE0F</div>
+        <div class="summary-val">${avgTemp}\xB0</div>
+        <div class="summary-label">Avg Temp</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-icon">\u26A0\uFE0F</div>
+        <div class="summary-val" style="color:${critical > 0 ? "var(--bad)" : "var(--ok)"}">${critical > 0 ? "YES" : "NO"}</div>
+        <div class="summary-label">Risk Alert</div>
+      </div>
+    `;
+        }
+        updateTable() {
+          const tbody = this.el.querySelector("#truck-table-body");
+          let html = "";
+          for (const t of this.app.trucks) {
+            const a = t.analysis;
+            const s = t.sim.state;
+            const isActive = t.id === this.app.activeTruckId;
+            const band = a ? a.band : "HEALTHY";
+            const bandColor2 = band === "CRITICAL" ? "var(--bad)" : band === "ATTENTION" ? "var(--warn)" : "var(--ok)";
+            html += `
+        <tr class="${isActive ? "row-active" : ""}">
+          <td><span class="table-vehicle">${t.name}</span><span class="table-plate mono">${t.plate}</span></td>
+          <td><span class="mono" style="color:${bandColor2}">${a ? a.healthScore : "--"}</span></td>
+          <td><span class="band-badge band-${band.toLowerCase()}">${band === "HEALTHY" ? "\u{1F7E2}" : band === "ATTENTION" ? "\u{1F7E1}" : "\u{1F534}"} ${band}</span></td>
+          <td class="mono">${Math.round(s.speed)}</td>
+          <td class="mono">${Math.round(s.coolantTemp)}\xB0C</td>
+          <td class="mono">${s.voltage.toFixed(1)}V</td>
+          <td class="mono">${Math.round(s.vibration)}</td>
+          <td class="mono">${Math.round(s.fuelEfficiency)}%</td>
+        </tr>
+      `;
+          }
+          tbody.innerHTML = html;
+        }
+        updateFuelChart() {
+          for (const t of this.app.trucks) {
+            const history = this.fuelHistory[t.id];
+            const currentFuel = t.sim.state.fuelEfficiency;
+            history.push(currentFuel);
+            if (history.length > 50) history.shift();
+          }
+          const canvas = this.el.querySelector("#fuel-chart");
+          if (!canvas) return;
+          const dpr = Math.min(window.devicePixelRatio || 1, 2);
+          const rect = canvas.getBoundingClientRect();
+          const w = rect.width || canvas.parentElement.clientWidth || 400;
+          canvas.width = Math.floor(w * dpr);
+          canvas.height = Math.floor(140 * dpr);
+          canvas.style.height = "140px";
+          const ctx = canvas.getContext("2d");
+          ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+          const h = 140;
+          ctx.clearRect(0, 0, w, h);
+          ctx.fillStyle = "rgba(10,18,34,0.55)";
+          ctx.fillRect(0, 0, w, h);
+          ctx.strokeStyle = "rgba(80,110,160,0.16)";
+          ctx.lineWidth = 1;
+          for (let i = 1; i < 4; i++) {
+            const y = h / 4 * i;
+            ctx.beginPath();
+            ctx.moveTo(0, y);
+            ctx.lineTo(w, y);
+            ctx.stroke();
+          }
+          const colors = ["#22d3ee", "#34d399", "#fbbf24", "#f87171", "#a78bfa"];
+          this.app.trucks.forEach((truck, ti) => {
+            const data = this.fuelHistory[truck.id];
+            if (data.length < 2) return;
+            const color = colors[ti % colors.length];
+            const grad = ctx.createLinearGradient(0, 0, 0, h);
+            grad.addColorStop(0, hexToRgba2(color, 0.2));
+            grad.addColorStop(1, hexToRgba2(color, 0.01));
+            ctx.beginPath();
+            ctx.moveTo(0, h);
+            data.forEach((v, i) => {
+              const x = i / (data.length - 1) * w;
+              const y = h - v / 100 * h;
+              ctx.lineTo(x, y);
+            });
+            ctx.lineTo(w, h);
+            ctx.closePath();
+            ctx.fillStyle = grad;
+            ctx.fill();
+            ctx.beginPath();
+            data.forEach((v, i) => {
+              const x = i / (data.length - 1) * w;
+              const y = h - v / 100 * h;
+              if (i === 0) ctx.moveTo(x, y);
+              else ctx.lineTo(x, y);
+            });
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+            ctx.fillStyle = color;
+            ctx.font = '10px "JetBrains Mono", monospace';
+            ctx.textAlign = "left";
+            ctx.fillText(truck.name, 10, 14 + ti * 14);
+          });
+          let html = "";
+          for (const t of this.app.trucks) {
+            const fuel = Math.round(t.sim.state.fuelEfficiency);
+            const color = fuel < 50 ? "var(--bad)" : fuel < 70 ? "var(--warn)" : "var(--ok)";
+            html += `<div class="fuel-stat-item">
+        <span class="fuel-stat-name">${t.name}</span>
+        <span class="fuel-stat-val mono" style="color:${color}">${fuel}%</span>
+      </div>`;
+          }
+          this.el.querySelector("#fuel-stats").innerHTML = html;
+        }
+        updateMaintPredictions() {
+          const grid = this.el.querySelector("#maint-grid");
+          let html = "";
+          for (const t of this.app.trucks) {
+            const a = t.analysis;
+            const s = t.sim.state;
+            if (!a) continue;
+            let daysUntilMaint = 30;
+            let urgency = "LOW";
+            let color = "var(--ok)";
+            if (a.band === "CRITICAL") {
+              daysUntilMaint = 0;
+              urgency = "IMMEDIATE";
+              color = "var(--bad)";
+            } else if (a.band === "ATTENTION") {
+              daysUntilMaint = 3 + Math.round(Math.random() * 7);
+              urgency = "SOON";
+              color = "var(--warn)";
+            } else {
+              if (a.trends && a.trends.tempRising && a.trends.tempRising.active) daysUntilMaint -= 5;
+              if (a.trends && a.trends.vibrationRising && a.trends.vibrationRising.active) daysUntilMaint -= 7;
+              if (a.trends && a.trends.voltageFalling && a.trends.voltageFalling.active) daysUntilMaint -= 4;
+              daysUntilMaint = Math.max(1, daysUntilMaint);
+              if (daysUntilMaint < 10) {
+                urgency = "MODERATE";
+                color = "var(--warn)";
+              }
+            }
+            html += `
+        <div class="maint-card" style="border-left-color:${color}">
+          <div class="maint-vehicle">${t.name}</div>
+          <div class="maint-prediction">
+            <span class="maint-days mono" style="color:${color}">${daysUntilMaint === 0 ? "NOW" : daysUntilMaint + "d"}</span>
+            <span class="maint-urgency" style="color:${color}">${urgency}</span>
+          </div>
+        </div>
+      `;
+          }
+          grid.innerHTML = html;
+        }
+        updateHealthDistChart() {
+          const canvas = this.el.querySelector("#health-dist-chart");
+          if (!canvas) return;
+          const dpr = Math.min(window.devicePixelRatio || 1, 2);
+          const rect = canvas.getBoundingClientRect();
+          const w = rect.width || canvas.parentElement.clientWidth || 400;
+          canvas.width = Math.floor(w * dpr);
+          canvas.height = Math.floor(120 * dpr);
+          canvas.style.height = "120px";
+          const ctx = canvas.getContext("2d");
+          ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+          const h = 120;
+          ctx.clearRect(0, 0, w, h);
+          ctx.fillStyle = "rgba(10,18,34,0.55)";
+          ctx.fillRect(0, 0, w, h);
+          const barWidth = Math.min(60, (w - 60) / this.app.trucks.length - 12);
+          const startX = (w - (barWidth + 12) * this.app.trucks.length) / 2;
+          this.app.trucks.forEach((truck, i) => {
+            const a = truck.analysis;
+            const health = a ? a.healthScore : 0;
+            const band = a ? a.band : "HEALTHY";
+            const color = band === "CRITICAL" ? "#f87171" : band === "ATTENTION" ? "#fbbf24" : "#34d399";
+            const x = startX + i * (barWidth + 12);
+            const barH = health / 100 * (h - 30);
+            const grad = ctx.createLinearGradient(x, h - 20 - barH, x, h - 20);
+            grad.addColorStop(0, hexToRgba2(color, 0.9));
+            grad.addColorStop(1, hexToRgba2(color, 0.3));
+            ctx.fillStyle = grad;
+            const radius = 4;
+            ctx.beginPath();
+            ctx.moveTo(x + radius, h - 20 - barH);
+            ctx.lineTo(x + barWidth - radius, h - 20 - barH);
+            ctx.quadraticCurveTo(x + barWidth, h - 20 - barH, x + barWidth, h - 20 - barH + radius);
+            ctx.lineTo(x + barWidth, h - 20);
+            ctx.lineTo(x, h - 20);
+            ctx.lineTo(x, h - 20 - barH + radius);
+            ctx.quadraticCurveTo(x, h - 20 - barH, x + radius, h - 20 - barH);
+            ctx.fill();
+            ctx.fillStyle = "#fff";
+            ctx.font = 'bold 11px "JetBrains Mono", monospace';
+            ctx.textAlign = "center";
+            ctx.fillText(health, x + barWidth / 2, h - 20 - barH - 6);
+            ctx.fillStyle = "rgba(139,163,199,0.75)";
+            ctx.font = '9px "Space Grotesk", sans-serif';
+            ctx.fillText(truck.name, x + barWidth / 2, h - 6);
+          });
+        }
+        exportReport() {
+          const rows = [["Vehicle", "Plate", "Health", "Status", "Risk", "Speed", "Temp", "Voltage", "Vibration", "Engine Load", "Fuel Eff", "Scenario", "Time"]];
+          for (const t of this.app.trucks) {
+            const a2 = t.analysis;
+            const s = t.sim.state;
+            rows.push([
+              t.name,
+              t.plate,
+              a2 ? a2.healthScore : "",
+              a2 ? a2.band : "",
+              a2 ? a2.riskLevel : "",
+              Math.round(s.speed),
+              round1(s.coolantTemp),
+              round2(s.voltage),
+              Math.round(s.vibration),
+              Math.round(s.engineLoad),
+              Math.round(s.fuelEfficiency),
+              t.sim.scenarioKey,
+              fmtTime()
+            ]);
+          }
+          const csv = rows.map((r) => r.map((c) => `"${c}"`).join(",")).join("\n");
+          const blob = new Blob([csv], { type: "text/csv" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `truckpulse-report-${(/* @__PURE__ */ new Date()).toISOString().slice(0, 10)}.csv`;
+          a.click();
+          URL.revokeObjectURL(url);
+          if (this.app.toasts) {
+            this.app.toasts.showInfo("Report exported successfully", "\u{1F4E5}");
+          }
+        }
+      };
+    }
+  });
+
+  // js/main.js
+  var require_main = __commonJS({
+    "js/main.js"() {
+      init_config();
+      init_vehicleSimulation();
+      init_healthEngine();
+      init_aiService();
+      init_alertService();
+      init_audioService();
+      init_math();
+      init_SimulationControls();
+      init_FleetPanel();
+      init_HealthScore();
+      init_VehicleVisualization();
+      init_TelemetryPanel();
+      init_HealthChart();
+      init_AIAnalysis();
+      init_EventTimeline();
+      init_AlertCenter();
+      init_WhatsAppPreview();
+      init_Toasts();
+      init_FleetMap();
+      init_AnalysisDashboard();
+      var App = class {
+        constructor() {
+          this.session = null;
+          this.checkAuth();
+          this.running = false;
+          this.speed = 1;
+          this.activeTruckId = FLEET[0].id;
+          this.alertService = new AlertService();
+          this.audioService = new AudioService();
+          this.ai = new AIService(this.alertService, this.audioService);
+          this.trucks = FLEET.map((t, i) => ({
+            id: t.id,
+            name: t.name,
+            plate: t.plate,
+            route: t.route || "",
+            sim: new VehicleSimulation(t.scenario, { seedJitter: true }),
+            analysis: null,
+            recovered: false
+          }));
+          this.pendingSwitch = null;
+          this.pendingMaintenance = false;
+        }
+        get activeVehicle() {
+          return this.trucks.find((t) => t.id === this.activeTruckId);
+        }
+        get activeScenario() {
+          const v = this.activeVehicle;
+          return v ? v.sim.scenarioKey : "NORMAL";
+        }
+        // ================= SIMULATION CONTROL =====================
+        toggleRun() {
+          this.running = !this.running;
+          if (this.running) {
+            this.ai.addTimelineEvent("Simulation started \u2014 live telemetry streaming", "\u25B6", "info");
+            this.toasts.showInfo("Simulation started \u2014 live telemetry streaming", "\u25B6");
+          } else {
+            this.ai.addTimelineEvent("Simulation paused", "\u23F8", "info");
+            this.toasts.showInfo("Simulation paused", "\u23F8");
+          }
+          this.controls.sync(this);
+        }
+        setSpeed(s) {
+          this.speed = s;
+          this.toasts.showInfo(`Simulation speed set to ${s}x`, "\u26A1");
+          this.controls.sync(this);
+        }
+        selectScenario(key) {
+          const v = this.activeVehicle;
+          if (!v) return;
+          if (v.sim.scenarioKey === key && key !== "RECOVERY") return;
+          v.sim.setScenario(key);
+          if (key !== "RECOVERY") v.recovered = false;
+          this.showTransition(`Switching simulation scenario\u2026 <b>${SCENARIOS[key].label}</b>`);
+          this.ai.addTimelineEvent(`Scenario switched to ${SCENARIOS[key].label}`, "\u{1F39B}", "info");
+          this.controls.sync(this);
+        }
+        resetSimulation() {
+          const v = this.activeVehicle;
+          if (!v) return;
+          v.sim.reset("NORMAL");
+          v.recovered = false;
+          this.alertService.clear();
+          this.ai.resetTimeline();
+          this.ai.addTimelineEvent("Simulation reset \u2014 vehicle restored to normal", "\u21BB", "info");
+          this.toasts.showInfo("Simulation reset \u2014 vehicle restored to normal", "\u21BB");
+          this.controls.sync(this);
+        }
+        simulateMaintenance() {
+          const v = this.activeVehicle;
+          if (!v) return;
+          v.sim.setScenario("RECOVERY");
+          v.recovered = false;
+          this.pendingMaintenance = true;
+          this.toasts.showInfo("\u{1F527} Maintenance simulated \u2014 vehicle recovering", "\u{1F527}");
+          this.controls.sync(this);
+        }
+        selectTruck(id) {
+          if (id === this.activeTruckId) return;
+          this.activeTruckId = id;
+          this.ai.vehicleSwitched();
+          this.pendingSwitch = this.activeVehicle;
+          this.controls.sync(this);
+        }
+        // ================= ALERT BANNER / TOASTS ===================
+        showTransition(html) {
+          const el = document.getElementById("transition-toast");
+          el.innerHTML = html;
+          el.classList.remove("hidden");
+          el.classList.add("show");
+          clearTimeout(this._transitionTimer);
+          this._transitionTimer = setTimeout(() => {
+            el.classList.remove("show");
+            setTimeout(() => el.classList.add("hidden"), 500);
+          }, 1600);
+        }
+        renderBanner(alert) {
+          const banner = document.getElementById("alert-banner");
+          if (!alert) {
+            banner.classList.add("hidden");
+            banner.innerHTML = "";
+            return;
+          }
+          const critical = alert.level === "critical";
+          banner.className = `alert-banner ${critical ? "critical" : "warning"}`;
+          banner.innerHTML = `
+      <div class="banner-icon">${critical ? "\u{1F534}" : "\u26A0"}</div>
+      <div class="banner-main">
+        <div class="banner-title">${critical ? "CRITICAL VEHICLE ALERT" : "VEHICLE HEALTH WARNING"}</div>
+        <div class="banner-msg">${alert.message}</div>
+      </div>
+      <div class="banner-meta">
+        <span>Health <b class="mono">${alert.health}/100</b></span>
+        <span>Risk <b>${alert.risk}</b></span>
+        <span class="banner-reco">\u2192 ${alert.recommendation}</span>
+      </div>
+      <button class="banner-x" id="banner-x">\u2715</button>
+    `;
+          banner.querySelector("#banner-x").addEventListener("click", () => {
+            this.alertService.active = null;
+            this.renderBanner(null);
+          });
+        }
+        // ================= BOOT =====================================
+        checkAuth() {
+          const gate = document.getElementById("auth-gate");
+          try {
+            const raw = sessionStorage.getItem("truckpulse_session");
+            if (!raw) throw new Error("no session");
+            const s = JSON.parse(raw);
+            if (!s.expiresAt || s.expiresAt < Date.now()) {
+              sessionStorage.removeItem("truckpulse_session");
+              throw new Error("expired");
+            }
+            this.session = s;
+            if (gate) gate.classList.add("hidden");
+            setTimeout(() => {
+              const nameEl = document.getElementById("user-name");
+              const roleEl = document.getElementById("user-role");
+              if (nameEl) nameEl.textContent = s.name || s.username;
+              if (roleEl) roleEl.textContent = s.role;
+            }, 50);
+          } catch {
+            if (gate) {
+              gate.classList.remove("hidden");
+              gate.style.display = "flex";
+            }
+            setTimeout(() => {
+              if (gate) {
+                gate.innerHTML = `
+            <div class="auth-gate-card">
+              <div class="auth-gate-icon">\u{1F44B}</div>
+              <div class="auth-gate-title">Demo Mode</div>
+              <div class="auth-gate-msg">Running in demo mode. Some features may be limited.</div>
+              <a href="login.html" class="auth-gate-btn">Login for Full Access</a>
+              <button class="auth-gate-btn" style="margin-top:8px;background:rgba(24,40,70,0.6);border-color:var(--border);color:var(--muted);" onclick="this.closest('.auth-gate').style.display='none'">Continue as Guest</button>
+              <a href="home.html" style="display:block;margin-top:12px;font-size:11px;color:var(--faint);text-decoration:none;letter-spacing:0.5px;">\u2190 Back to Home</a>
+            </div>
+          `;
+                gate.classList.remove("hidden");
+              }
+            }, 2e3);
+          }
+        }
+        mount() {
+          const $ = (id) => document.getElementById(id);
+          try {
+            this.controls = new SimulationControls($("sim-controls"), this);
+          } catch (e) {
+            console.error("Failed to init SimulationControls:", e);
+          }
+          try {
+            this.fleet = new FleetPanel($("fleet-panel"), this);
+          } catch (e) {
+            console.error("Failed to init FleetPanel:", e);
+          }
+          try {
+            this.healthScore = new HealthScore($("health-score"), this);
+          } catch (e) {
+            console.error("Failed to init HealthScore:", e);
+          }
+          try {
+            this.vehicleVis = new VehicleVisualization($("vehicle-visual"), this);
+          } catch (e) {
+            console.error("Failed to init VehicleVisualization:", e);
+          }
+          try {
+            this.telemetry = new TelemetryPanel($("telemetry"), this);
+          } catch (e) {
+            console.error("Failed to init TelemetryPanel:", e);
+          }
+          try {
+            this.charts = new HealthChart($("charts"), this);
+          } catch (e) {
+            console.error("Failed to init HealthChart:", e);
+          }
+          try {
+            this.aiPanel = new AIAnalysis($("ai-analysis"), this);
+          } catch (e) {
+            console.error("Failed to init AIAnalysis:", e);
+          }
+          try {
+            this.timeline = new EventTimeline($("event-timeline"), this);
+          } catch (e) {
+            console.error("Failed to init EventTimeline:", e);
+          }
+          try {
+            this.alertCenter = new AlertCenter($("alert-center"), this);
+          } catch (e) {
+            console.error("Failed to init AlertCenter:", e);
+          }
+          try {
+            this.whatsapp = new WhatsAppPreview($("whatsapp-preview"), this);
+          } catch (e) {
+            console.error("Failed to init WhatsAppPreview:", e);
+          }
+          try {
+            this.toasts = new Toasts($("toast-stack"));
+          } catch (e) {
+            console.error("Failed to init Toasts:", e);
+          }
+          try {
+            this.fleetMap = new FleetMap($("fleet-map-section"), this);
+          } catch (e) {
+            console.error("Failed to init FleetMap:", e);
+          }
+          try {
+            this.analysisDash = new AnalysisDashboard($("analysis-dashboard"), this);
+          } catch (e) {
+            console.error("Failed to init AnalysisDashboard:", e);
+          }
+          this.alertService.hooks.onBanner = (a) => this.renderBanner(a);
+          this.alertService.hooks.onToast = (a) => this.toasts.show(a);
+          this.alertService.hooks.onSound = (level) => this.audioService.play(level);
+          this.alertService.hooks.onWhatsApp = () => {
+          };
+          const soundBtn = $("sound-toggle");
+          if (soundBtn) {
+            soundBtn.addEventListener("click", () => {
+              this.audioService.setEnabled(!this.audioService.enabled);
+              soundBtn.classList.toggle("on", this.audioService.enabled);
+              this.toasts.showInfo(
+                this.audioService.enabled ? "Alert sound enabled" : "Alert sound muted",
+                this.audioService.enabled ? "\u{1F50A}" : "\u{1F507}"
+              );
+            });
+          }
+          const logoutBtn = $("logout-btn");
+          if (logoutBtn) {
+            logoutBtn.addEventListener("click", () => {
+              sessionStorage.removeItem("truckpulse_session");
+              this.toasts.showInfo("Logged out successfully", "\u{1F44B}");
+              setTimeout(() => {
+                window.location.href = "home.html";
+              }, 800);
+            });
+          }
+          try {
+            this.runAnalysis();
+          } catch (e) {
+            console.error("Failed to run initial analysis:", e);
+          }
+          this.lastFrame = performance.now();
+          this.simAccum = 0;
+          this.frameId = requestAnimationFrame((t) => this.frame(t));
+          this.clockTimer = setInterval(() => {
+            const c = document.getElementById("clock");
+            const f = document.getElementById("footer-clock");
+            const t = fmtTime();
+            if (c) c.textContent = t;
+            if (f) f.textContent = t;
+          }, 1e3);
+          window.addEventListener("resize", () => {
+            if (this.charts && this.charts.canvases) {
+              Object.values(this.charts.canvases).forEach((c) => this.charts.sizeCanvas(c));
+            }
+          });
+          window.addEventListener("beforeunload", () => this.destroy());
+          document.addEventListener("visibilitychange", () => {
+            this.lastFrame = performance.now();
+          });
+        }
+        destroy() {
+          cancelAnimationFrame(this.frameId);
+          clearInterval(this.clockTimer);
+        }
+        // ================= THE ONE LOOP ============================
+        frame(now) {
+          this.frameId = requestAnimationFrame((t) => this.frame(t));
+          const realDt = Math.min(now - this.lastFrame, 250);
+          this.lastFrame = now;
+          if (this.running) {
+            this.simAccum += realDt * this.speed;
+            while (this.simAccum >= tickMsAtSpeed(1)) {
+              for (const t of this.trucks) t.sim.tick(250);
+              this.simAccum -= 250;
+            }
+          }
+          this.runAnalysis();
+          this.renderAll(now);
+        }
+        runAnalysis() {
+          const active = this.activeVehicle;
+          const snapshot = active.sim.snapshot();
+          active.analysis = this.ai.analyze(snapshot, {
+            vehicleName: active.name,
+            plate: active.plate
+          });
+          if (this.pendingSwitch) {
+            this.ai.addTimelineEvent(`Switched to ${this.pendingSwitch.name} \u2014 telemetry loaded`, "\u{1F500}", "info");
+            this.pendingSwitch = null;
+          }
+          if (this.pendingMaintenance && active.analysis.band === "HEALTHY" && active.sim.scenarioKey === "RECOVERY") {
+            active.recovered = true;
+            this.pendingMaintenance = false;
+            this.ai.addTimelineEvent("Maintenance complete \u2014 vehicle recovered", "\u2705", "info");
+            this.toasts.showInfo("Vehicle recovered \u2014 operating normally", "\u2705");
+          }
+          if (active.sim.scenarioKey === "RECOVERY" && active.analysis.band === "HEALTHY") {
+            active.recovered = true;
+          }
+          for (const t of this.trucks) {
+            if (t.id === active.id) continue;
+            t.analysis = analyzeVehicleHealth(t.sim.snapshot());
+          }
+        }
+        renderAll(now) {
+          const v = this.activeVehicle;
+          try {
+            this.healthScore.update(v);
+          } catch (e) {
+          }
+          try {
+            this.vehicleVis.update(v);
+          } catch (e) {
+          }
+          try {
+            this.telemetry.update(v);
+          } catch (e) {
+          }
+          try {
+            this.charts.update(v);
+          } catch (e) {
+          }
+          try {
+            this.aiPanel.update(v, now);
+          } catch (e) {
+          }
+          try {
+            this.timeline.update();
+          } catch (e) {
+          }
+          try {
+            this.alertCenter.update();
+          } catch (e) {
+          }
+          try {
+            this.fleet.update();
+          } catch (e) {
+          }
+          try {
+            this.whatsapp.update(v);
+          } catch (e) {
+          }
+          try {
+            this.controls.sync(this);
+          } catch (e) {
+          }
+          if (!this._mapFrame || now - this._mapFrame > 500) {
+            try {
+              this.fleetMap.update();
+            } catch (e) {
+            }
+            try {
+              this.analysisDash.updateAnalysis();
+            } catch (e) {
+            }
+            this._mapFrame = now;
+          }
+          const chip = document.getElementById("vehicle-status-chip");
+          const running = this.running;
+          const band = v.analysis ? v.analysis.band : "HEALTHY";
+          if (chip) {
+            chip.innerHTML = `
+        <span class="hdr-status">
+          <span class="hdr-dot ${running ? "pulse" : ""}"></span>
+          <span class="hdr-text">${running ? "SIMULATION ACTIVE" : "PAUSED"}</span>
+        </span>
+        <span class="hdr-band band-${band.toLowerCase()}">${band === "HEALTHY" ? "\u{1F7E2}" : band === "ATTENTION" ? "\u{1F7E1}" : "\u{1F534}"} ${band}</span>
+      `;
+          }
+        }
+      };
+      var app = new App();
+      window.truckPulseApp = app;
+      app.mount();
+    }
+  });
+  require_main();
+})();
+
+</script>
+</body>
+</html>
