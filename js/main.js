@@ -27,6 +27,7 @@ import { WhatsAppPreview } from './components/WhatsAppPreview.js';
 import { Toasts } from './components/Toasts.js';
 import { FleetMap } from './components/FleetMap.js';
 import { AnalysisDashboard } from './components/AnalysisDashboard.js';
+import { MechanicsPanel } from './components/MechanicsPanel.js';
 
 class App {
   constructor() {
@@ -229,6 +230,7 @@ class App {
     try { this.toasts = new Toasts($('toast-stack')); } catch(e) { console.error('Failed to init Toasts:', e); }
     try { this.fleetMap = new FleetMap($('fleet-map-section'), this); } catch(e) { console.error('Failed to init FleetMap:', e); }
     try { this.analysisDash = new AnalysisDashboard($('analysis-dashboard'), this); } catch(e) { console.error('Failed to init AnalysisDashboard:', e); }
+    try { this.mechanics = new MechanicsPanel($('mechanics-panel'), this); } catch(e) { console.error('Failed to init MechanicsPanel:', e); }
 
     // service -> UI hooks
     this.alertService.hooks.onBanner = (a) => this.renderBanner(a);
@@ -358,6 +360,7 @@ class App {
     try { this.alertCenter.update(); } catch(e) {}
     try { this.fleet.update(); } catch(e) {}
     try { this.whatsapp.update(v); } catch(e) {}
+    try { this.mechanics.update(); } catch(e) {}
     try { this.controls.sync(this); } catch(e) {}
 
     // Map and analysis updates (throttled)

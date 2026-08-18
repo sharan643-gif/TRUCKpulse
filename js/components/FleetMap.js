@@ -172,6 +172,9 @@ export class FleetMap {
       this.addTruckMarker(truck);
     }
 
+    // Add mechanic markers
+    this.addMechanicMarkers();
+
     this.tileLoaded = true;
   }
 
@@ -262,6 +265,98 @@ export class FleetMap {
         <div class="popup-scenario">Scenario: ${scenario}</div>
       </div>
     `;
+  }
+
+  addMechanicMarkers() {
+    if (!this.map || typeof L === 'undefined') return;
+
+    // Remove old mechanic markers
+    if (this.mechanicMarkers) {
+      this.mechanicMarkers.forEach(m => this.map.removeLayer(m));
+    }
+    this.mechanicMarkers = [];
+
+    const truckId = this.app.activeTruckId;
+    const truck = this.app.trucks.find(t => t.id === truckId);
+    if (!truck) return;
+
+    const route = TRUCK_ROUTES[truckId] || TRUCK_ROUTES['truck-01'];
+    const startIdx = this.routeProgress[truckId] || 0;
+    const idx = Math.floor(startIdx);
+    const pos = route[idx];
+
+    // Mechanic data (subset for display)
+    const mechanics = [
+      { name: 'Chennai Auto Works', lat: 13.0950, lng: 80.2400, specialty: 'Engine & Transmission', rating: 4.8, phone: '+91 44 2345 6789' },
+      { name: 'Express Fleet Services', lat: 13.1400, lng: 80.2000, specialty: 'Heavy Vehicle Repair', rating: 4.5, phone: '+91 44 3456 7890' },
+      { name: 'Highway Diesel Mechanics', lat: 13.2000, lng: 80.1400, specialty: 'Diesel Engine & Fuel System', rating: 4.2, phone: '+91 44 4567 8901' },
+      { name: 'Bangalore Truck Care', lat: 12.9900, lng: 77.6200, specialty: 'Full Service Garage', rating: 4.6, phone: '+91 80 5678 9012' },
+      { name: 'Mumbai Heavy Repairs', lat: 19.0850, lng: 72.8900, specialty: 'Heavy Duty Engine', rating: 4.7, phone: '+91 22 8901 2345' },
+      { name: 'Delhi Truck Stop Garage', lat: 28.6250, lng: 77.2300, specialty: 'Engine & Brakes', rating: 4.3, phone: '+91 11 1234 5678' },
+      { name: 'Kolkata Fleet Services', lat: 22.5800, lng: 88.3800, specialty: 'Heavy Vehicle Repair', rating: 4.2, phone: '+91 33 4567 8901' },
+      { name: 'Hyderabad Truck Hub', lat: 17.3950, lng: 78.5050, specialty: 'Transmission & Drivetrain', rating: 4.4, phone: '+91 40 7890 1234' },
+    ];
+
+    mechanics.forEach(m => {
+      const icon = L.divIcon({
+        className: 'mechanic-marker',
+        html: `<div class="mechanic-marker-inner">
+          <span class="mechanic-dot"></span>
+          <span class="mechanic-emoji">🔧</span>
+          <span class="mechanic-label">${m.name.split(' ')[0]}</span>
+        </div>`,
+        iconSize: [36, 28],
+        iconAnchor: [18, 28],
+      });
+
+      const marker = L.marker([m.lat, m.lng], { icon }).addTo(this.map);
+
+      const popupHtml = `
+        <div class="popup-content">
+          <div class="popup-header">
+            <span class="popup-icon">🔧</span>
+            <div>
+              <div class="popup-name">${m.name}</div>
+              <div class="popup-plate">${m.specialty}</div>
+            </div>
+          </div>
+          <div class="popup-stats">
+            <div class="popup-stat">
+              <span class="popup-stat-label">Rating</span>
+              <span class="popup-stat-val" style="color:#fbbf24">★ ${m.rating}</span>
+            </div>
+            <div class="popup-stat">
+              <span class="popup-stat-label">Phone</span>
+              <span class="popup-stat-val" style="font-size:11px">${m.phone}</span>
+            </div>
+          </div>
+        </div>
+      `;
+
+      marker.bindPopup(popupHtml, {
+        className: 'truck-popup',
+        maxWidth: 260,
+        offset: [0, -10],
+      });
+
+      this.mechanicMarkers.push(marker);
+    });
+  }
+
+  panToMechanic(lat, lng, name) {
+    if (!this.visible) this.toggle();
+    setTimeout(() => {
+      if (this.map) {
+        this.map.setView([lat, lng], 14, { animate: true });
+        // Find and open the mechanic popup
+        this.mechanicMarkers.forEach(m => {
+          const ll = m.getLatLng();
+          if (Math.abs(ll.lat - lat) < 0.001 && Math.abs(ll.lng - lng) < 0.001) {
+            m.openPopup();
+          }
+        });
+      }
+    }, 200);
   }
 
   update() {

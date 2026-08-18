@@ -907,6 +907,115 @@ body::after {
   padding-top: 8px; border-top: 1px dashed var(--glass-border);
 }
 
+/* ============ MECHANICS PANEL ============ */
+.mechanics-container { margin-top: 8px; }
+.mech-list {
+  display: flex; flex-direction: column; gap: 8px;
+  max-height: 400px; overflow-y: auto; padding-right: 4px;
+}
+.mech-list::-webkit-scrollbar { width: 5px; }
+.mech-list::-webkit-scrollbar-track { background: transparent; }
+.mech-list::-webkit-scrollbar-thumb { background: rgba(80,140,220,0.25); border-radius: 3px; }
+
+.mech-card {
+  background: rgba(12, 22, 44, 0.55); border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm); padding: 12px 13px;
+  transition: all 0.22s; backdrop-filter: blur(10px);
+  position: relative; overflow: hidden;
+}
+.mech-card::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: var(--glass-shine); pointer-events: none;
+}
+.mech-card > * { position: relative; z-index: 1; }
+.mech-card:hover {
+  border-color: var(--glass-border-hover);
+  transform: translateY(-1px); box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+}
+
+.mech-card-header {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 8px;
+}
+.mech-icon { font-size: 16px; flex: none; }
+.mech-info { flex: 1; min-width: 0; }
+.mech-name { font-weight: 700; font-size: 12.5px; color: var(--text); }
+.mech-specialty { font-size: 10px; color: var(--faint); letter-spacing: 0.5px; }
+.mech-dist {
+  font-family: var(--mono); font-size: 11px; font-weight: 600;
+  color: var(--cyan); white-space: nowrap;
+  text-shadow: 0 0 6px var(--cyan-glow);
+}
+
+.mech-card-body {
+  display: flex; flex-direction: column; gap: 5px;
+}
+.mech-rating {
+  display: flex; align-items: center; gap: 5px;
+}
+.mech-stars {
+  color: #fbbf24; font-size: 11px; letter-spacing: 1px;
+  text-shadow: 0 0 4px rgba(251,191,36,0.3);
+}
+.mech-rating-val {
+  font-family: var(--mono); font-size: 11px; color: var(--muted);
+}
+.mech-meta-row {
+  display: flex; gap: 12px; font-size: 10.5px; color: var(--muted);
+  flex-wrap: wrap;
+}
+.mech-price {
+  font-weight: 700; color: var(--ok);
+  text-shadow: 0 0 4px var(--ok-glow);
+}
+.mech-status {
+  font-weight: 700; font-size: 9.5px; letter-spacing: 0.8px;
+}
+.mech-status.open {
+  color: var(--ok); text-shadow: 0 0 4px var(--ok-glow);
+}
+.mech-status.closed {
+  color: var(--bad); text-shadow: 0 0 4px var(--bad-glow);
+}
+
+.mech-navigate-btn {
+  width: 100%; margin-top: 8px;
+  background: rgba(18, 30, 55, 0.6); border: 1px solid var(--glass-border);
+  border-radius: 8px; padding: 7px 10px;
+  color: var(--cyan); font-family: var(--font); font-size: 11px; font-weight: 600;
+  letter-spacing: 0.5px; cursor: pointer; transition: all 0.2s;
+  backdrop-filter: blur(8px);
+}
+.mech-navigate-btn:hover {
+  background: rgba(34, 211, 238, 0.12);
+  border-color: rgba(34, 211, 238, 0.4);
+  box-shadow: 0 0 12px rgba(34,211,238,0.15);
+}
+
+/* Mechanic map markers */
+.mechanic-marker { background: none !important; border: none !important; }
+.mechanic-marker-inner {
+  display: flex; flex-direction: column; align-items: center;
+  cursor: pointer; transition: transform 0.2s;
+}
+.mechanic-marker-inner:hover { transform: scale(1.12); }
+.mechanic-emoji {
+  font-size: 18px;
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,0.5));
+}
+.mechanic-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: #a78bfa; border: 2px solid rgba(255,255,255,0.8);
+  margin-bottom: -2px; position: relative; z-index: 2;
+  box-shadow: 0 0 8px rgba(167,139,250,0.5);
+}
+.mechanic-label {
+  font-size: 8px; font-weight: 700; letter-spacing: 0.6px;
+  color: #fff; background: rgba(20, 16, 40, 0.88);
+  padding: 1px 5px; border-radius: 5px; white-space: nowrap;
+  border: 1px solid rgba(167,139,250,0.3); backdrop-filter: blur(8px);
+}
+
 /* ============ ANALYSIS DASHBOARD ============ */
 .analysis-section { margin-top: 14px; }
 .analysis-section-title {
